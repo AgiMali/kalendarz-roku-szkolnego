@@ -554,11 +554,17 @@ function getSubjectShortLabel(subject = "") {
   const shortcuts = {
     "informatyka": "INF",
     "inf": "INF",
+    "zajęcia rozwijające": "ZR",
+    "zajecia rozwijajace": "ZR",
+    "zr": "ZR",
     "zpt": "ZPT",
     "zajęcia praktyczno-techniczne": "ZPT",
     "zajecia praktyczno-techniczne": "ZPT",
     "technika": "TECH",
     "tech": "TECH",
+    "majsterkuj z malinką": "MZM",
+    "majsterkuj z malinka": "MZM",
+    "mzm": "MZM",
   };
 
   if (!normalized) {
@@ -590,12 +596,20 @@ function getLessonBadgeClass(label = "") {
     return "badge-inf";
   }
 
+  if (normalized === "ZR") {
+    return "badge-zr";
+  }
+
   if (normalized === "ZPT") {
     return "badge-zpt";
   }
 
   if (normalized === "TECH") {
     return "badge-tech";
+  }
+
+  if (normalized === "MZM") {
+    return "badge-mzm";
   }
 
   return "badge-default";

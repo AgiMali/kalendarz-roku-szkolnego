@@ -17,6 +17,10 @@
   --lesson-tech-soft: rgba(175, 109, 58, 0.14);
   --lesson-inf: #3f758f;
   --lesson-inf-soft: rgba(63, 117, 143, 0.14);
+  --lesson-zr: #5a7fa8;
+  --lesson-zr-soft: rgba(90, 127, 168, 0.14);
+  --lesson-mzm: #7a679f;
+  --lesson-mzm-soft: rgba(122, 103, 159, 0.14);
   --free-red: #b63b3b;
   --free-red-soft: rgba(182, 59, 59, 0.14);
   --mon: #f8ece1;
@@ -364,6 +368,16 @@ h1 {
 .badge.lessons.badge-inf {
   background: var(--lesson-inf-soft);
   color: var(--lesson-inf);
+}
+
+.badge.lessons.badge-zr {
+  background: var(--lesson-zr-soft);
+  color: var(--lesson-zr);
+}
+
+.badge.lessons.badge-mzm {
+  background: var(--lesson-mzm-soft);
+  color: var(--lesson-mzm);
 }
 
 .badge.free {
