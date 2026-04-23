@@ -244,7 +244,7 @@ function renderDays() {
   const dayMarkup = weekdaysOnly
     .map((day) => {
       const free = isFreeDay(day.date);
-      const lessons = getScheduledLessonsForDate(day.date).length;
+      const lessonSummary = getLessonSummaryForDate(day.date);
       const notesPreview = getCalendarNotePreview(day.dateKey);
       const holidayInfo = getHolidayInfo(day.date);
 
@@ -257,7 +257,7 @@ function renderDays() {
           <span class="day-number">${day.date.getDate()}</span>
           <span class="day-name">${weekdayNames[day.date.getDay()]}</span>
           <div class="day-badges">
-            ${free ? "" : `<span class="badge lessons">${lessons} lek.</span>`}
+            ${free ? "" : lessonSummary.map((item) => `<span class="badge lessons">${item.count} ${escapeHtml(item.label)}</span>`).join("")}
             ${free ? `<span class="badge free">${holidayInfo ? holidayInfo.short : "wolne"}</span>` : ""}
           </div>
           ${notesPreview.length ? `<div class="day-topics">${notesPreview.map((note) => `<span class="day-topic">${note}</span>`).join("")}</div>` : ""}
@@ -524,6 +524,63 @@ function getScheduledLessonsForDate(date) {
   }
 
   return state.weeklyPlan[weekday].filter((lesson) => lesson.subject.trim() || lesson.group.trim());
+}
+
+function getLessonSummaryForDate(date) {
+  const groupedLessons = new Map();
+
+  getScheduledLessonsForDate(date).forEach((lesson) => {
+    const subject = lesson.subject.trim();
+    const label = getSubjectShortLabel(subject);
+    const existing = groupedLessons.get(label);
+
+    if (existing) {
+      existing.count += 1;
+      return;
+    }
+
+    groupedLessons.set(label, {
+      label,
+      count: 1,
+      sortLabel: subject || label,
+    });
+  });
+
+  return Array.from(groupedLessons.values()).sort((left, right) => left.sortLabel.localeCompare(right.sortLabel, "pl"));
+}
+
+function getSubjectShortLabel(subject = "") {
+  const normalized = subject.trim().toLowerCase();
+  const shortcuts = {
+    "informatyka": "INF",
+    "inf": "INF",
+    "zpt": "ZPT",
+    "zajęcia praktyczno-techniczne": "ZPT",
+    "zajecia praktyczno-techniczne": "ZPT",
+    "technika": "TECH",
+    "tech": "TECH",
+  };
+
+  if (!normalized) {
+    return "LEK";
+  }
+
+  if (shortcuts[normalized]) {
+    return shortcuts[normalized];
+  }
+
+  const cleaned = normalized
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9 ]/g, " ")
+    .trim();
+
+  const words = cleaned.split(/\s+/).filter(Boolean);
+  if (words.length > 1) {
+    return words.slice(0, 3).map((word) => word[0]).join("").toUpperCase();
+  }
+
+  return cleaned.slice(0, 4).toUpperCase() || "LEK";
 }
 
 function getDayLessonData(entry, index) {
