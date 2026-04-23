@@ -40,6 +40,7 @@ const elements = {
   daysRemaining: document.querySelector("#daysRemaining"),
   teachingDaysRemaining: document.querySelector("#teachingDaysRemaining"),
   weekdayStats: document.querySelector("#weekdayStats"),
+  subjectStats: document.querySelector("#subjectStats"),
   todayBadge: document.querySelector("#todayBadge"),
   jumpToToday: document.querySelector("#jumpToToday"),
   lessonTemplate: document.querySelector("#lessonTemplate"),
@@ -338,12 +339,18 @@ function renderSummary() {
   const startDate = getSchoolYearStart();
   const endDate = getSchoolYearEnd();
   const weekdayCounts = calculateWeekdayCounts(startDate, endDate);
+  const subjectCounts = calculateSubjectLessonCounts(startDate, endDate);
 
   elements.daysRemaining.textContent = String(calculateDaysRemaining(startDate, endDate));
   elements.teachingDaysRemaining.textContent = String(calculateTeachingDaysRemaining(startDate, endDate));
   elements.weekdayStats.innerHTML = trackedWeekdays
     .map(({ day, short }) => `<div class="weekday-pill"><strong>${weekdayCounts[day]}</strong><span>${short}</span></div>`)
     .join("");
+  elements.subjectStats.innerHTML = subjectCounts.length
+    ? subjectCounts
+      .map(({ label, count }) => `<div class="subject-pill ${getLessonBadgeClass(label)}"><strong>${count}</strong><span>${escapeHtml(label)}</span></div>`)
+      .join("")
+    : '<p class="subject-empty">Wpisz plan, a tutaj pokażą się godziny według przedmiotów.</p>';
   elements.todayBadge.textContent = `Liczenie od: ${formatLongDate(startDate)}`;
 }
 
@@ -384,6 +391,32 @@ function calculateLessonsRemaining(startDate, endDate) {
   }
 
   return count;
+}
+
+function calculateSubjectLessonCounts(startDate, endDate) {
+  const counts = new Map();
+  const pointer = new Date(startDate);
+
+  while (pointer <= endDate) {
+    const lessons = getScheduledLessonsForDate(pointer);
+    const entry = getEntry(buildDateKey(pointer));
+
+    lessons.forEach((lesson, index) => {
+      const dayLesson = getDayLessonData(entry, index);
+      if (dayLesson.completed || dayLesson.canceled) {
+        return;
+      }
+
+      const label = getSubjectShortLabel(lesson.subject);
+      counts.set(label, (counts.get(label) ?? 0) + 1);
+    });
+
+    pointer.setDate(pointer.getDate() + 1);
+  }
+
+  return Array.from(counts.entries())
+    .map(([label, count]) => ({ label, count }))
+    .sort((left, right) => right.count - left.count || left.label.localeCompare(right.label, "pl"));
 }
 
 function calculateWeekdayCounts(startDate, endDate) {

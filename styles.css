@@ -184,7 +184,8 @@ h1 {
   border-top: 1px solid var(--border);
 }
 
-.weekday-summary h3 {
+.weekday-summary h3,
+.subject-summary h3 {
   margin-bottom: 12px;
 }
 
@@ -213,6 +214,79 @@ h1 {
   margin-top: 4px;
   color: var(--muted);
   font-size: 0.84rem;
+}
+
+.subject-summary {
+  margin-top: 18px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+}
+
+.subject-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.subject-pill {
+  padding: 12px 10px;
+  border-radius: 14px;
+  border: 1px solid transparent;
+  text-align: center;
+}
+
+.subject-pill strong {
+  display: block;
+  font-size: 1.1rem;
+}
+
+.subject-pill span {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+.subject-pill.badge-default {
+  background: var(--lesson-green-soft);
+  color: var(--lesson-green);
+  border-color: rgba(47, 125, 50, 0.12);
+}
+
+.subject-pill.badge-zpt {
+  background: var(--lesson-zpt-soft);
+  color: var(--lesson-zpt);
+  border-color: rgba(157, 91, 47, 0.12);
+}
+
+.subject-pill.badge-tech {
+  background: var(--lesson-tech-soft);
+  color: var(--lesson-tech);
+  border-color: rgba(175, 109, 58, 0.12);
+}
+
+.subject-pill.badge-inf {
+  background: var(--lesson-inf-soft);
+  color: var(--lesson-inf);
+  border-color: rgba(63, 117, 143, 0.12);
+}
+
+.subject-pill.badge-zr {
+  background: var(--lesson-zr-soft);
+  color: var(--lesson-zr);
+  border-color: rgba(90, 127, 168, 0.12);
+}
+
+.subject-pill.badge-mzm {
+  background: var(--lesson-mzm-soft);
+  color: var(--lesson-mzm);
+  border-color: rgba(123, 145, 96, 0.16);
+}
+
+.subject-empty {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.92rem;
 }
 
 .section-heading {
