@@ -13,3 +13,7 @@ Statyczna aplikacja webowa do planowania roku szkolnego nauczyciela.
 ## Uruchomienie
 
 Otwórz plik `index.html` w przeglądarce.
+
+## Publikacja
+
+Repozytorium jest przygotowane do publikacji przez GitHub Pages.
