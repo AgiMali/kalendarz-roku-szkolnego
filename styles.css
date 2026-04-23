@@ -11,6 +11,12 @@
   --success: #4f7c4c;
   --lesson-green: #2f7d32;
   --lesson-green-soft: rgba(47, 125, 50, 0.14);
+  --lesson-zpt: #9d5b2f;
+  --lesson-zpt-soft: rgba(157, 91, 47, 0.14);
+  --lesson-tech: #af6d3a;
+  --lesson-tech-soft: rgba(175, 109, 58, 0.14);
+  --lesson-inf: #3f758f;
+  --lesson-inf-soft: rgba(63, 117, 143, 0.14);
   --free-red: #b63b3b;
   --free-red-soft: rgba(182, 59, 59, 0.14);
   --mon: #f8ece1;
@@ -338,6 +344,26 @@ h1 {
 .badge.lessons {
   background: var(--lesson-green-soft);
   color: var(--lesson-green);
+}
+
+.badge.lessons.badge-default {
+  background: var(--lesson-green-soft);
+  color: var(--lesson-green);
+}
+
+.badge.lessons.badge-zpt {
+  background: var(--lesson-zpt-soft);
+  color: var(--lesson-zpt);
+}
+
+.badge.lessons.badge-tech {
+  background: var(--lesson-tech-soft);
+  color: var(--lesson-tech);
+}
+
+.badge.lessons.badge-inf {
+  background: var(--lesson-inf-soft);
+  color: var(--lesson-inf);
 }
 
 .badge.free {

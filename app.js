@@ -257,7 +257,7 @@ function renderDays() {
           <span class="day-number">${day.date.getDate()}</span>
           <span class="day-name">${weekdayNames[day.date.getDay()]}</span>
           <div class="day-badges">
-            ${free ? "" : lessonSummary.map((item) => `<span class="badge lessons">${item.count} ${escapeHtml(item.label)}</span>`).join("")}
+            ${free ? "" : lessonSummary.map((item) => `<span class="badge lessons ${getLessonBadgeClass(item.label)}">${item.count} ${escapeHtml(item.label)}</span>`).join("")}
             ${free ? `<span class="badge free">${holidayInfo ? holidayInfo.short : "wolne"}</span>` : ""}
           </div>
           ${notesPreview.length ? `<div class="day-topics">${notesPreview.map((note) => `<span class="day-topic">${note}</span>`).join("")}</div>` : ""}
@@ -581,6 +581,24 @@ function getSubjectShortLabel(subject = "") {
   }
 
   return cleaned.slice(0, 4).toUpperCase() || "LEK";
+}
+
+function getLessonBadgeClass(label = "") {
+  const normalized = label.trim().toUpperCase();
+
+  if (normalized === "INF") {
+    return "badge-inf";
+  }
+
+  if (normalized === "ZPT") {
+    return "badge-zpt";
+  }
+
+  if (normalized === "TECH") {
+    return "badge-tech";
+  }
+
+  return "badge-default";
 }
 
 function getDayLessonData(entry, index) {
