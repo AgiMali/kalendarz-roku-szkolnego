@@ -193,7 +193,7 @@ function renderWeeklyPlan() {
                   data-weekly-index="${index}"
                   data-weekly-field="group"
                   type="text"
-                  placeholder="klasa"
+                  placeholder="np. 4a"
                   value="${escapeHtml(lesson.group)}"
                 >
                 <input
@@ -408,7 +408,7 @@ function calculateClassLessonCounts(startDate, endDate) {
       }
 
       const subjectLabel = getSubjectShortLabel(lesson.subject);
-      const groupLabel = lesson.group.trim() || "bez klasy";
+      const groupLabel = normalizeGroupLabel(lesson.group);
       const key = `${groupLabel}__${subjectLabel}`;
       const existing = counts.get(key);
 
@@ -433,6 +433,16 @@ function calculateClassLessonCounts(startDate, endDate) {
       left.subjectLabel.localeCompare(right.subjectLabel, "pl") ||
       right.count - left.count,
   );
+}
+
+function normalizeGroupLabel(group = "") {
+  const cleaned = group.trim();
+
+  if (!cleaned) {
+    return "bez klasy";
+  }
+
+  return cleaned.replace(/\s+/g, "").toLowerCase();
 }
 
 function calculateWeekdayCounts(startDate, endDate) {
