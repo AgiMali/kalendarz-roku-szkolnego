@@ -339,18 +339,18 @@ function renderSummary() {
   const startDate = getSchoolYearStart();
   const endDate = getSchoolYearEnd();
   const weekdayCounts = calculateWeekdayCounts(startDate, endDate);
-  const subjectCounts = calculateSubjectLessonCounts(startDate, endDate);
+  const classCounts = calculateClassLessonCounts(startDate, endDate);
 
   elements.daysRemaining.textContent = String(calculateDaysRemaining(startDate, endDate));
   elements.teachingDaysRemaining.textContent = String(calculateTeachingDaysRemaining(startDate, endDate));
   elements.weekdayStats.innerHTML = trackedWeekdays
     .map(({ day, short }) => `<div class="weekday-pill"><strong>${weekdayCounts[day]}</strong><span>${short}</span></div>`)
     .join("");
-  elements.subjectStats.innerHTML = subjectCounts.length
-    ? subjectCounts
-      .map(({ label, count }) => `<div class="subject-pill ${getLessonBadgeClass(label)}"><strong>${count}</strong><span>${escapeHtml(label)}</span></div>`)
+  elements.subjectStats.innerHTML = classCounts.length
+    ? classCounts
+      .map(({ label, count, subjectLabel }) => `<div class="subject-pill ${getLessonBadgeClass(subjectLabel)}"><strong>${count}</strong><span>${escapeHtml(label)}</span></div>`)
       .join("")
-    : '<p class="subject-empty">Wpisz plan, a tutaj pokażą się godziny według przedmiotów.</p>';
+    : '<p class="subject-empty">Wpisz plan, a tutaj pokażą się godziny dla każdej klasy.</p>';
   elements.todayBadge.textContent = `Liczenie od: ${formatLongDate(startDate)}`;
 }
 
@@ -393,7 +393,7 @@ function calculateLessonsRemaining(startDate, endDate) {
   return count;
 }
 
-function calculateSubjectLessonCounts(startDate, endDate) {
+function calculateClassLessonCounts(startDate, endDate) {
   const counts = new Map();
   const pointer = new Date(startDate);
 
@@ -407,16 +407,32 @@ function calculateSubjectLessonCounts(startDate, endDate) {
         return;
       }
 
-      const label = getSubjectShortLabel(lesson.subject);
-      counts.set(label, (counts.get(label) ?? 0) + 1);
+      const subjectLabel = getSubjectShortLabel(lesson.subject);
+      const groupLabel = lesson.group.trim() || "bez klasy";
+      const key = `${groupLabel}__${subjectLabel}`;
+      const existing = counts.get(key);
+
+      if (existing) {
+        existing.count += 1;
+      } else {
+        counts.set(key, {
+          label: `${groupLabel} • ${subjectLabel}`,
+          count: 1,
+          groupLabel,
+          subjectLabel,
+        });
+      }
     });
 
     pointer.setDate(pointer.getDate() + 1);
   }
 
-  return Array.from(counts.entries())
-    .map(([label, count]) => ({ label, count }))
-    .sort((left, right) => right.count - left.count || left.label.localeCompare(right.label, "pl"));
+  return Array.from(counts.values()).sort(
+    (left, right) =>
+      left.groupLabel.localeCompare(right.groupLabel, "pl", { numeric: true }) ||
+      left.subjectLabel.localeCompare(right.subjectLabel, "pl") ||
+      right.count - left.count,
+  );
 }
 
 function calculateWeekdayCounts(startDate, endDate) {
@@ -472,11 +488,14 @@ function goToTodayIfInYear() {
   const schoolYearStart = getSchoolYearStart();
   const schoolYearEnd = getSchoolYearEnd();
 
-  if (current < schoolYearStart || current > schoolYearEnd) {
-    return;
+  let targetDate = current;
+  if (current < schoolYearStart) {
+    targetDate = schoolYearStart;
+  } else if (current > schoolYearEnd) {
+    targetDate = schoolYearEnd;
   }
 
-  const selectedDate = getNearestSelectableDate(current, schoolYearEnd);
+  const selectedDate = getNearestSelectableDate(targetDate, schoolYearEnd);
   selectedMonthIndex = getMonthIndexForDate(selectedDate);
   selectedDateKey = buildDateKey(selectedDate);
   render();
