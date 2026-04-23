@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kalendarz roku szkolnego</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="hero">
+      <div>
+        <p class="eyebrow">Organizer nauczyciela</p>
+        <h1>Kalendarz roku szkolnego</h1>
+        <p class="hero-copy">
+          Zaplanuj miesiące od września do czerwca, zapisuj tematy lekcji, dni wolne
+          i trzymaj pod kontrolą, ile czasu zostało do końca roku szkolnego.
+        </p>
+      </div>
+
+        <section class="settings-panel">
+          <h2>Ustawienia roku</h2>
+          <div class="settings-grid">
+            <label>
+              Początek roku szkolnego
+              <input id="schoolYearStartDate" type="date">
+            </label>
+
+            <label>
+              Koniec roku szkolnego
+              <input id="schoolYearEnd" type="date">
+            </label>
+          </div>
+
+        <p class="settings-hint">
+          Dane zapisują się lokalnie w tej przeglądarce. Datę zakończenia możesz zmienić w każdej chwili.
+        </p>
+      </section>
+    </header>
+
+    <main class="layout">
+      <section class="sidebar">
+        <div class="card summary-card">
+          <h2>Podsumowanie</h2>
+          <div class="stats">
+            <article>
+              <span id="daysRemaining" class="stat-value">0</span>
+              <span class="stat-label">dni do końca roku szkolnego</span>
+            </article>
+            <article>
+              <span id="teachingDaysRemaining" class="stat-value">0</span>
+              <span class="stat-label">dni nauki do końca</span>
+            </article>
+          </div>
+          <div class="weekday-summary">
+            <h3>Pozostałe dni tygodnia</h3>
+            <div id="weekdayStats" class="weekday-stats"></div>
+          </div>
+          <p id="todayBadge" class="today-badge"></p>
+        </div>
+
+        <section class="card">
+          <div class="section-heading">
+            <h2>Miesiące</h2>
+            <p>Wrzesień - sierpień</p>
+          </div>
+          <div id="monthGrid" class="month-grid"></div>
+        </section>
+      </section>
+
+      <section class="main-panel">
+        <section class="card month-card">
+          <div class="section-heading">
+            <div>
+              <h2 id="monthTitle">Miesiąc</h2>
+              <p id="monthMeta">Wybierz miesiąc, aby zobaczyć dni.</p>
+            </div>
+            <button id="jumpToToday" class="secondary-button" type="button">Przejdź do dzisiaj</button>
+          </div>
+          <div id="dayGrid" class="day-grid"></div>
+        </section>
+
+        <section class="card weekly-plan-card">
+          <div class="section-heading">
+            <div>
+              <h2>Stały plan tygodnia</h2>
+              <p>Wpisz lekcje raz, a aplikacja policzy je do końca roku.</p>
+            </div>
+          </div>
+          <div id="weeklyPlan" class="weekly-plan"></div>
+        </section>
+
+        <section id="detailCard" class="card detail-card">
+          <div class="section-heading">
+            <div>
+              <h2 id="selectedDateTitle">Szczegóły dnia</h2>
+              <p id="selectedDateSubtitle">Wybierz dzień w kalendarzu.</p>
+            </div>
+          </div>
+
+          <label class="full-width">
+            Notatki do dnia
+            <textarea id="dayNotes" rows="3" placeholder="Np. rada pedagogiczna, wycieczka, sprawdzian, zebranie..."></textarea>
+          </label>
+
+          <div class="lessons-header">
+            <h3>Lekcje i tematy na ten dzień</h3>
+          </div>
+
+          <div id="lessonList" class="lesson-list"></div>
+        </section>
+      </section>
+    </main>
+  </div>
+
+  <template id="lessonTemplate">
+    <article class="lesson-item">
+      <div class="lesson-topbar">
+        <strong class="lesson-number"></strong>
+        <span class="lesson-label"></span>
+      </div>
+      <div class="lesson-compact-grid">
+        <label class="full-width">
+          Temat
+          <input data-field="topic" type="text" placeholder="Wpisz temat">
+        </label>
+        <label class="full-width">
+          Notatka
+          <input data-field="notes" type="text" placeholder="Krótka notatka">
+        </label>
+        <label class="checkbox-row">
+          <input data-field="completed" type="checkbox">
+          <span>Zrealizowana</span>
+        </label>
+        <label class="checkbox-row">
+          <input data-field="canceled" type="checkbox">
+          <span>Nie odbyła się</span>
+        </label>
+        <label class="full-width">
+          Powód
+          <input data-field="canceledReason" type="text" placeholder="Np. akademia">
+        </label>
+      </div>
+    </article>
+  </template>
+
+  <script src="app.js"></script>
+</body>
+</html>

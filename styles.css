@@ -1,0 +1,602 @@
+:root {
+  --bg: #f5efe3;
+  --surface: rgba(255, 250, 242, 0.9);
+  --surface-strong: #fffdf8;
+  --border: rgba(92, 70, 46, 0.14);
+  --text: #2f261d;
+  --muted: #6e6256;
+  --accent: #cf6a34;
+  --accent-dark: #9f461d;
+  --soft-accent: #f7d8c5;
+  --success: #4f7c4c;
+  --lesson-green: #2f7d32;
+  --lesson-green-soft: rgba(47, 125, 50, 0.14);
+  --free-red: #b63b3b;
+  --free-red-soft: rgba(182, 59, 59, 0.14);
+  --mon: #f8ece1;
+  --tue: #eef4de;
+  --wed: #e6f1ee;
+  --thu: #eef0fa;
+  --fri: #f8ebf3;
+  --shadow: 0 18px 45px rgba(86, 63, 39, 0.12);
+  --radius-lg: 24px;
+  --radius-md: 16px;
+  --radius-sm: 12px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  color: var(--text);
+  background:
+    radial-gradient(circle at top left, rgba(255, 216, 175, 0.55), transparent 32%),
+    radial-gradient(circle at top right, rgba(255, 186, 146, 0.35), transparent 28%),
+    linear-gradient(180deg, #fcf8f1 0%, var(--bg) 100%);
+  min-height: 100vh;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+.app-shell {
+  max-width: 1500px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.hero {
+  display: grid;
+  grid-template-columns: 1.3fr 0.9fr;
+  gap: 20px;
+  align-items: start;
+  margin-bottom: 24px;
+}
+
+.eyebrow {
+  margin: 0 0 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--accent-dark);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+h1,
+h2,
+h3,
+p {
+  margin-top: 0;
+}
+
+h1 {
+  margin-bottom: 12px;
+  font-size: clamp(2.2rem, 4vw, 4rem);
+  line-height: 1;
+}
+
+.hero-copy,
+.settings-hint,
+.section-heading p,
+.stat-label,
+.today-badge,
+.free-day-reason,
+#selectedDateSubtitle,
+#monthMeta {
+  color: var(--muted);
+}
+
+.settings-panel,
+.card {
+  background: var(--surface);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+}
+
+.settings-panel {
+  padding: 20px;
+}
+
+.settings-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 320px minmax(0, 1fr);
+  gap: 24px;
+}
+
+.sidebar,
+.main-panel {
+  display: grid;
+  gap: 24px;
+  align-content: start;
+}
+
+.card {
+  padding: 20px;
+}
+
+.summary-card {
+  background: linear-gradient(140deg, rgba(255, 247, 235, 0.95), rgba(255, 233, 215, 0.9));
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(130px, 160px));
+  gap: 12px;
+  justify-content: center;
+}
+
+.stats article {
+  padding: 14px;
+  border-radius: var(--radius-md);
+  background: var(--surface-strong);
+  border: 1px solid var(--border);
+  min-width: 0;
+}
+
+.stat-value {
+  display: block;
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--accent-dark);
+  line-height: 1;
+  margin-bottom: 8px;
+}
+
+.stat-label {
+  display: block;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.today-badge {
+  margin-top: 14px;
+  font-size: 0.95rem;
+}
+
+.weekday-summary {
+  margin-top: 18px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+}
+
+.weekday-summary h3 {
+  margin-bottom: 12px;
+}
+
+.weekday-stats {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.weekday-pill {
+  padding: 12px 10px;
+  border-radius: 14px;
+  background: var(--surface-strong);
+  border: 1px solid var(--border);
+  text-align: center;
+}
+
+.weekday-pill strong {
+  display: block;
+  font-size: 1.2rem;
+  color: var(--lesson-green);
+}
+
+.weekday-pill span {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 0.84rem;
+}
+
+.section-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: start;
+  margin-bottom: 16px;
+}
+
+.month-grid,
+.day-grid,
+.lesson-list {
+  display: grid;
+  gap: 12px;
+}
+
+.month-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.month-button,
+.day-button {
+  border: 1px solid var(--border);
+  background: var(--surface-strong);
+  color: var(--text);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.month-button {
+  text-align: left;
+  padding: 16px;
+}
+
+.month-button:hover,
+.day-button:hover,
+.primary-button:hover,
+.secondary-button:hover,
+.ghost-button:hover {
+  transform: translateY(-2px);
+}
+
+.month-button.active,
+.day-button.active {
+  border-color: rgba(207, 106, 52, 0.55);
+  box-shadow: 0 10px 24px rgba(207, 106, 52, 0.18);
+}
+
+.month-name,
+.day-number {
+  display: block;
+  font-weight: 800;
+}
+
+.month-name {
+  margin-bottom: 8px;
+  font-size: 1.05rem;
+}
+
+.month-meta,
+.day-meta {
+  font-size: 0.88rem;
+  color: var(--muted);
+}
+
+.day-grid {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.day-button {
+  text-align: left;
+  padding: 10px 12px;
+  min-height: 84px;
+}
+
+.weekday-header {
+  padding: 8px 10px;
+  text-align: center;
+  font-weight: 800;
+  color: var(--accent-dark);
+}
+
+.day-placeholder {
+  min-height: 1px;
+}
+
+.day-number {
+  font-size: 1.1rem;
+}
+
+.day-name {
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+.day-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 8px;
+}
+
+.day-topics {
+  display: grid;
+  gap: 4px;
+  margin-top: 10px;
+}
+
+.day-topic {
+  display: block;
+  padding: 4px 6px;
+  border-radius: 8px;
+  background: rgba(47, 125, 50, 0.08);
+  color: var(--lesson-green);
+  font-size: 0.75rem;
+  line-height: 1.25;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  padding: 3px 7px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.badge.lessons {
+  background: var(--lesson-green-soft);
+  color: var(--lesson-green);
+}
+
+.badge.free {
+  background: var(--free-red-soft);
+  color: var(--free-red);
+}
+
+.day-button.weekend {
+  background: rgba(255, 246, 238, 0.86);
+}
+
+.day-button.free-day {
+  border-color: rgba(182, 59, 59, 0.35);
+  background: rgba(255, 245, 245, 0.96);
+}
+
+.detail-controls,
+.lessons-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+}
+
+.checkbox-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+}
+
+textarea,
+input,
+select {
+  width: 100%;
+  margin-top: 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(92, 70, 46, 0.18);
+  background: #fffdfa;
+  padding: 11px 13px;
+  color: var(--text);
+}
+
+textarea {
+  resize: vertical;
+}
+
+.full-width {
+  display: block;
+}
+
+.primary-button,
+.secondary-button,
+.ghost-button {
+  border-radius: 999px;
+  cursor: pointer;
+  padding: 11px 16px;
+  font-weight: 700;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+}
+
+.primary-button {
+  border: none;
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+  color: white;
+  box-shadow: 0 12px 22px rgba(159, 70, 29, 0.22);
+}
+
+.secondary-button,
+.ghost-button {
+  border: 1px solid var(--border);
+  background: var(--surface-strong);
+  color: var(--text);
+}
+
+.lesson-item {
+  background: var(--surface-strong);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+}
+
+.detail-card-empty {
+  opacity: 0.96;
+}
+
+.detail-card-empty textarea {
+  background: rgba(245, 239, 227, 0.7);
+}
+
+.lesson-compact-grid {
+  display: grid;
+  grid-template-columns: minmax(220px, 1.5fr) minmax(160px, 1fr) auto auto minmax(140px, 0.9fr);
+  gap: 10px;
+  align-items: end;
+}
+
+.lesson-compact-grid input {
+  margin-top: 6px;
+  padding: 9px 10px;
+}
+
+.weekly-plan {
+  overflow-x: auto;
+}
+
+.lesson-label {
+  color: var(--lesson-green);
+  font-weight: 700;
+}
+
+.weekly-plan-grid {
+  display: grid;
+  grid-template-columns: 48px repeat(5, minmax(132px, 1fr));
+  gap: 6px;
+  min-width: 760px;
+}
+
+.weekly-plan-grid-head,
+.weekly-plan-slot,
+.weekly-plan-cell {
+  border-radius: 12px;
+  border: 1px solid rgba(92, 70, 46, 0.12);
+  background: rgba(255, 253, 248, 0.86);
+}
+
+.weekly-plan-grid-head {
+  padding: 8px 6px;
+  text-align: center;
+}
+
+.weekly-plan-grid-head strong,
+.weekly-plan-grid-head span {
+  display: block;
+}
+
+.weekly-plan-grid-head span {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 0.68rem;
+}
+
+.weekly-plan-grid-head.corner,
+.weekly-plan-slot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  color: var(--accent-dark);
+}
+
+.weekly-plan-cell {
+  padding: 5px;
+  display: grid;
+  grid-template-columns: 70px 1fr;
+  gap: 5px;
+  align-items: center;
+}
+
+.weekly-plan-cell input {
+  margin-top: 0;
+  padding: 6px 7px;
+  font-size: 0.9rem;
+}
+
+.weekly-plan-cell input:first-child {
+  max-width: none;
+}
+
+.weekly-plan-grid > :nth-child(6n + 2) {
+  background: var(--mon);
+  border-color: rgba(194, 144, 95, 0.24);
+}
+
+.weekly-plan-grid > :nth-child(6n + 3) {
+  background: var(--tue);
+  border-color: rgba(143, 171, 96, 0.24);
+}
+
+.weekly-plan-grid > :nth-child(6n + 4) {
+  background: var(--wed);
+  border-color: rgba(102, 157, 142, 0.24);
+}
+
+.weekly-plan-grid > :nth-child(6n + 5) {
+  background: var(--thu);
+  border-color: rgba(122, 135, 194, 0.24);
+}
+
+.weekly-plan-grid > :nth-child(6n + 6) {
+  background: var(--fri);
+  border-color: rgba(186, 125, 160, 0.24);
+}
+
+.weekly-plan-grid-head strong {
+  color: var(--accent-dark);
+}
+
+.empty-state {
+  margin: 0;
+  padding: 16px;
+  border-radius: var(--radius-md);
+  background: rgba(255, 253, 248, 0.9);
+  border: 1px dashed rgba(92, 70, 46, 0.22);
+  color: var(--muted);
+}
+
+.lesson-topbar {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.lesson-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+@media (max-width: 1100px) {
+  .hero,
+  .layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .app-shell {
+    padding: 16px;
+  }
+
+  .settings-grid,
+  .stats,
+  .month-grid,
+  .lesson-fields,
+  .weekday-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .section-heading,
+  .detail-controls,
+  .lessons-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .lesson-compact-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .weekly-plan-headings,
+  .weekly-plan-row {
+    grid-template-columns: 42px minmax(90px, 120px) minmax(120px, 1fr);
+  }
+
+  .day-grid {
+    grid-template-columns: repeat(5, minmax(90px, 1fr));
+    overflow-x: auto;
+  }
+}
