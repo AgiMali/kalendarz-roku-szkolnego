@@ -72,6 +72,7 @@ const elements = {
   importData: document.querySelector("#importData"),
   importFile: document.querySelector("#importFile"),
   dataStatus: document.querySelector("#dataStatus"),
+  authFields: document.querySelector("#authFields"),
   authEmail: document.querySelector("#authEmail"),
   authPassword: document.querySelector("#authPassword"),
   signInButton: document.querySelector("#signInButton"),
@@ -79,6 +80,7 @@ const elements = {
   signOutButton: document.querySelector("#signOutButton"),
   authStatus: document.querySelector("#authStatus"),
   syncStatus: document.querySelector("#syncStatus"),
+  syncPanel: document.querySelector(".sync-panel"),
   lessonTemplate: document.querySelector("#lessonTemplate"),
 };
 
@@ -330,6 +332,8 @@ function updateAuthUi() {
   elements.signUpButton.hidden = loggedIn;
   elements.authEmail.disabled = loggedIn;
   elements.authPassword.disabled = loggedIn;
+  elements.authFields.hidden = loggedIn;
+  elements.syncPanel.classList.toggle("compact", loggedIn);
 
   if (loggedIn) {
     elements.authEmail.value = currentUser.email ?? "";
