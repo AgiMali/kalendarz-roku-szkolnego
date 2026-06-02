@@ -839,18 +839,33 @@ function goToTodayIfInYear() {
   const current = stripTime(today);
   const schoolYearStart = getSchoolYearStart();
   const schoolYearEnd = getSchoolYearEnd();
-
-  let targetDate = current;
-  if (current < schoolYearStart) {
-    targetDate = schoolYearStart;
-  } else if (current > schoolYearEnd) {
-    targetDate = schoolYearEnd;
-  }
-
+  const targetDate = getTodayDateWithinSchoolYear(current, schoolYearStart, schoolYearEnd);
   const selectedDate = getNearestSelectableDate(targetDate, schoolYearEnd);
   selectedMonthIndex = getMonthIndexForDate(selectedDate);
   selectedDateKey = buildDateKey(selectedDate);
   render();
+}
+
+function getTodayDateWithinSchoolYear(current, schoolYearStart, schoolYearEnd) {
+  const startYear = schoolYearStart.getFullYear();
+  const month = current.getMonth();
+  const day = current.getDate();
+  const candidateYear = month >= 8 ? startYear : startYear + 1;
+  const candidate = new Date(candidateYear, month, day);
+
+  if (candidate >= schoolYearStart && candidate <= schoolYearEnd) {
+    return candidate;
+  }
+
+  if (current < schoolYearStart) {
+    return schoolYearStart;
+  }
+
+  if (current > schoolYearEnd) {
+    return schoolYearEnd;
+  }
+
+  return current;
 }
 
 function getMonthIndexForDate(date) {
