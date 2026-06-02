@@ -43,6 +43,10 @@ const elements = {
   subjectStats: document.querySelector("#subjectStats"),
   todayBadge: document.querySelector("#todayBadge"),
   jumpToToday: document.querySelector("#jumpToToday"),
+  exportData: document.querySelector("#exportData"),
+  importData: document.querySelector("#importData"),
+  importFile: document.querySelector("#importFile"),
+  dataStatus: document.querySelector("#dataStatus"),
   lessonTemplate: document.querySelector("#lessonTemplate"),
 };
 
@@ -91,6 +95,15 @@ function saveState() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
 
+function setDataStatus(message, isError = false) {
+  if (!elements.dataStatus) {
+    return;
+  }
+
+  elements.dataStatus.textContent = message;
+  elements.dataStatus.classList.toggle("error", isError);
+}
+
 function populateYearOptions() {
 }
 
@@ -121,6 +134,15 @@ function bindEvents() {
   });
 
   elements.jumpToToday.addEventListener("click", goToTodayIfInYear);
+
+  if (elements.exportData) {
+    elements.exportData.addEventListener("click", exportPlannerData);
+  }
+
+  if (elements.importData && elements.importFile) {
+    elements.importData.addEventListener("click", () => elements.importFile.click());
+    elements.importFile.addEventListener("change", importPlannerData);
+  }
 }
 
 function render() {
@@ -129,6 +151,65 @@ function render() {
   renderDays();
   renderDayDetails();
   renderSummary();
+}
+
+function exportPlannerData() {
+  const payload = {
+    app: "school-year-planner",
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    state,
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  const dateStamp = new Date().toISOString().slice(0, 10);
+
+  link.href = url;
+  link.download = `kalendarz-roku-szkolnego-${dateStamp}.json`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+
+  setDataStatus("Dane zostały zapisane do pliku JSON.");
+}
+
+function importPlannerData(event) {
+  const [file] = event.target.files || [];
+  if (!file) {
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const parsed = JSON.parse(String(reader.result || ""));
+      state = normalizeImportedState(parsed?.state ?? parsed);
+      hydrateControls();
+      ensureSelectedDate();
+      saveState();
+      render();
+      setDataStatus("Dane zostały wczytane z pliku.");
+    } catch (error) {
+      setDataStatus("Nie udało się wczytać pliku. Wybierz poprawny eksport kalendarza.", true);
+    } finally {
+      elements.importFile.value = "";
+    }
+  };
+
+  reader.readAsText(file, "utf-8");
+}
+
+function normalizeImportedState(rawState) {
+  return {
+    settings: {
+      startDate: rawState?.settings?.startDate ?? DEFAULT_START_DATE,
+      endDate: rawState?.settings?.endDate ?? DEFAULT_END_DATE,
+    },
+    entries: rawState?.entries && typeof rawState.entries === "object" ? rawState.entries : {},
+    weeklyPlan: normalizeWeeklyPlan(rawState?.weeklyPlan),
+  };
 }
 
 function renderMonths() {
