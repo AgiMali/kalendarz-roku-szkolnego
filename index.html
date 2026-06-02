@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Kalendarz roku szkolnego</title>
-  <link rel="stylesheet" href="styles.css?v=20260423-3">
+  <link rel="stylesheet" href="styles.css?v=20260602-1">
 </head>
 <body>
   <div class="app-shell">
@@ -35,6 +35,33 @@
         <p class="settings-hint">
           Dane zapisują się lokalnie w tej przeglądarce. Datę zakończenia możesz zmienić w każdej chwili.
         </p>
+        <div class="data-actions">
+          <button id="exportData" class="secondary-button" type="button">Eksportuj dane</button>
+          <button id="importData" class="secondary-button" type="button">Importuj dane</button>
+          <input id="importFile" type="file" accept="application/json" hidden>
+        </div>
+        <p id="dataStatus" class="data-status"></p>
+
+        <div class="sync-panel">
+          <h3>Synchronizacja online</h3>
+          <div class="auth-grid">
+            <label>
+              Email
+              <input id="authEmail" type="email" placeholder="Twój email">
+            </label>
+            <label>
+              Hasło
+              <input id="authPassword" type="password" placeholder="Hasło">
+            </label>
+          </div>
+          <div class="data-actions">
+            <button id="signInButton" class="secondary-button" type="button">Zaloguj</button>
+            <button id="signUpButton" class="secondary-button" type="button">Załóż konto</button>
+            <button id="signOutButton" class="secondary-button" type="button" hidden>Wyloguj</button>
+          </div>
+          <p id="authStatus" class="data-status">Dane są teraz zapisywane lokalnie w tej przeglądarce.</p>
+          <p id="syncStatus" class="data-status"></p>
+        </div>
       </section>
     </header>
 
@@ -148,6 +175,6 @@
     </article>
   </template>
 
-  <script src="app.js?v=20260423-3"></script>
+  <script type="module" src="app.js?v=20260602-1"></script>
 </body>
 </html>

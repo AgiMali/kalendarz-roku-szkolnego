@@ -1,4 +1,29 @@
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
+import {
+  createUserWithEmailAndPassword,
+  getAuth,
+  onAuthStateChanged,
+  signInWithEmailAndPassword,
+  signOut,
+} from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
+import {
+  doc,
+  getDoc,
+  getFirestore,
+  onSnapshot,
+  serverTimestamp,
+  setDoc,
+} from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
+
 const STORAGE_KEY = "school-year-planner-v1";
+const firebaseConfig = {
+  apiKey: "AIzaSyDAjJV4FhZOJ6G7XRgHVPNcgnncqNhbE1M",
+  authDomain: "kalendarz-roku-szkolnego-afebe.firebaseapp.com",
+  projectId: "kalendarz-roku-szkolnego-afebe",
+  storageBucket: "kalendarz-roku-szkolnego-afebe.firebasestorage.app",
+  messagingSenderId: "1072994268353",
+  appId: "1:1072994268353:web:eb364cc3846bc39059d040",
+};
 const monthNames = [
   "Wrzesień",
   "Październik",
@@ -47,14 +72,29 @@ const elements = {
   importData: document.querySelector("#importData"),
   importFile: document.querySelector("#importFile"),
   dataStatus: document.querySelector("#dataStatus"),
+  authEmail: document.querySelector("#authEmail"),
+  authPassword: document.querySelector("#authPassword"),
+  signInButton: document.querySelector("#signInButton"),
+  signUpButton: document.querySelector("#signUpButton"),
+  signOutButton: document.querySelector("#signOutButton"),
+  authStatus: document.querySelector("#authStatus"),
+  syncStatus: document.querySelector("#syncStatus"),
   lessonTemplate: document.querySelector("#lessonTemplate"),
 };
 
 const today = new Date();
+const firebaseApp = initializeApp(firebaseConfig);
+const auth = getAuth(firebaseApp);
+const db = getFirestore(firebaseApp);
 
 let state = loadState();
 let selectedMonthIndex = 0;
 let selectedDateKey = null;
+let currentUser = null;
+let cloudUnsubscribe = null;
+let isApplyingRemoteState = false;
+let saveTimeoutId = null;
+let lastSerializedState = JSON.stringify(state);
 
 init();
 
@@ -64,6 +104,7 @@ function init() {
   ensureSelectedDate();
   bindEvents();
   render();
+  initFirebaseSync();
 }
 
 function loadState() {
@@ -93,6 +134,8 @@ function loadState() {
 
 function saveState() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  lastSerializedState = JSON.stringify(state);
+  queueCloudSave();
 }
 
 function setDataStatus(message, isError = false) {
@@ -102,6 +145,7 @@ function setDataStatus(message, isError = false) {
 
   elements.dataStatus.textContent = message;
   elements.dataStatus.classList.toggle("error", isError);
+  elements.dataStatus.classList.toggle("success", Boolean(message) && !isError);
 }
 
 function populateYearOptions() {
@@ -143,6 +187,10 @@ function bindEvents() {
     elements.importData.addEventListener("click", () => elements.importFile.click());
     elements.importFile.addEventListener("change", importPlannerData);
   }
+
+  elements.signInButton?.addEventListener("click", handleSignIn);
+  elements.signUpButton?.addEventListener("click", handleSignUp);
+  elements.signOutButton?.addEventListener("click", handleSignOut);
 }
 
 function render() {
@@ -210,6 +258,215 @@ function normalizeImportedState(rawState) {
     entries: rawState?.entries && typeof rawState.entries === "object" ? rawState.entries : {},
     weeklyPlan: normalizeWeeklyPlan(rawState?.weeklyPlan),
   };
+}
+
+function initFirebaseSync() {
+  onAuthStateChanged(auth, async (user) => {
+    currentUser = user;
+    updateAuthUi();
+
+    if (cloudUnsubscribe) {
+      cloudUnsubscribe();
+      cloudUnsubscribe = null;
+    }
+
+    if (!user) {
+      setAuthStatus("Dane są teraz zapisywane lokalnie w tej przeglądarce.");
+      setSyncStatus("");
+      return;
+    }
+
+    setAuthStatus(`Zalogowano jako ${user.email}.`);
+    await loadCloudStateOrSeed();
+    startCloudSubscription();
+  });
+}
+
+async function handleSignIn() {
+  const email = elements.authEmail.value.trim();
+  const password = elements.authPassword.value;
+
+  if (!email || !password) {
+    setAuthStatus("Wpisz email i hasło, żeby się zalogować.", true);
+    return;
+  }
+
+  try {
+    await signInWithEmailAndPassword(auth, email, password);
+    elements.authPassword.value = "";
+    setAuthStatus("Logowanie udane.");
+  } catch (error) {
+    setAuthStatus(getAuthErrorMessage(error), true);
+  }
+}
+
+async function handleSignUp() {
+  const email = elements.authEmail.value.trim();
+  const password = elements.authPassword.value;
+
+  if (!email || !password) {
+    setAuthStatus("Wpisz email i hasło, żeby założyć konto.", true);
+    return;
+  }
+
+  try {
+    await createUserWithEmailAndPassword(auth, email, password);
+    elements.authPassword.value = "";
+    setAuthStatus("Konto zostało utworzone i od razu Cię zalogowałam.");
+  } catch (error) {
+    setAuthStatus(getAuthErrorMessage(error), true);
+  }
+}
+
+async function handleSignOut() {
+  await signOut(auth);
+  setAuthStatus("Wylogowano. Kalendarz działa dalej lokalnie.");
+}
+
+function updateAuthUi() {
+  const loggedIn = Boolean(currentUser);
+  elements.signOutButton.hidden = !loggedIn;
+  elements.signInButton.hidden = loggedIn;
+  elements.signUpButton.hidden = loggedIn;
+  elements.authEmail.disabled = loggedIn;
+  elements.authPassword.disabled = loggedIn;
+
+  if (loggedIn) {
+    elements.authEmail.value = currentUser.email ?? "";
+    elements.authPassword.value = "";
+  }
+}
+
+function setAuthStatus(message, isError = false) {
+  if (!elements.authStatus) {
+    return;
+  }
+
+  elements.authStatus.textContent = message;
+  elements.authStatus.classList.toggle("error", isError);
+  elements.authStatus.classList.toggle("success", Boolean(message) && !isError);
+}
+
+function setSyncStatus(message, isError = false) {
+  if (!elements.syncStatus) {
+    return;
+  }
+
+  elements.syncStatus.textContent = message;
+  elements.syncStatus.classList.toggle("error", isError);
+  elements.syncStatus.classList.toggle("success", Boolean(message) && !isError);
+}
+
+async function loadCloudStateOrSeed() {
+  const plannerRef = getPlannerDocRef();
+  const snapshot = await getDoc(plannerRef);
+
+  if (!snapshot.exists()) {
+    await saveStateToCloud(true);
+    setSyncStatus("Utworzyłam Twoją chmurową kopię kalendarza.");
+    return;
+  }
+
+  const remoteState = snapshot.data()?.state;
+  if (!remoteState) {
+    await saveStateToCloud(true);
+    setSyncStatus("Chmura była pusta, więc wysłałam tam aktualny kalendarz.");
+    return;
+  }
+
+  applyRemoteState(remoteState);
+  setSyncStatus("Wczytałam dane z chmury. Ten sam kalendarz zobaczysz też w szkole.");
+}
+
+function startCloudSubscription() {
+  const plannerRef = getPlannerDocRef();
+
+  cloudUnsubscribe = onSnapshot(plannerRef, (snapshot) => {
+    if (!snapshot.exists()) {
+      return;
+    }
+
+    const remoteState = snapshot.data()?.state;
+    if (!remoteState) {
+      return;
+    }
+
+    const serializedRemoteState = JSON.stringify(normalizeImportedState(remoteState));
+    if (serializedRemoteState === lastSerializedState) {
+      return;
+    }
+
+    applyRemoteState(remoteState);
+    setSyncStatus("Kalendarz zsynchronizował się z chmurą.");
+  });
+}
+
+function applyRemoteState(remoteState) {
+  isApplyingRemoteState = true;
+  state = normalizeImportedState(remoteState);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  lastSerializedState = JSON.stringify(state);
+  hydrateControls();
+  ensureSelectedDate();
+  render();
+  isApplyingRemoteState = false;
+}
+
+function queueCloudSave() {
+  if (!currentUser || isApplyingRemoteState) {
+    return;
+  }
+
+  window.clearTimeout(saveTimeoutId);
+  setSyncStatus("Zapisywanie zmian do chmury...");
+  saveTimeoutId = window.setTimeout(() => {
+    saveStateToCloud().catch(() => {
+      setSyncStatus("Nie udało się zapisać zmian online. Dane nadal są lokalnie.", true);
+    });
+  }, 700);
+}
+
+async function saveStateToCloud(silent = false) {
+  if (!currentUser) {
+    return;
+  }
+
+  await setDoc(
+    getPlannerDocRef(),
+    {
+      email: currentUser.email ?? "",
+      state: normalizeImportedState(state),
+      updatedAt: serverTimestamp(),
+    },
+    { merge: true },
+  );
+
+  if (!silent) {
+    setSyncStatus("Zmiany zapisane online.");
+  }
+}
+
+function getPlannerDocRef() {
+  return doc(db, "planners", currentUser.uid);
+}
+
+function getAuthErrorMessage(error) {
+  switch (error?.code) {
+    case "auth/email-already-in-use":
+      return "To konto już istnieje. Zaloguj się tym emailem.";
+    case "auth/invalid-email":
+      return "Ten email wygląda na niepoprawny.";
+    case "auth/invalid-credential":
+    case "auth/wrong-password":
+    case "auth/user-not-found":
+      return "Nie udało się zalogować. Sprawdź email i hasło.";
+    case "auth/weak-password":
+      return "Hasło jest za słabe. Użyj dłuższego hasła.";
+    case "auth/too-many-requests":
+      return "Za dużo prób. Spróbuj ponownie za chwilę.";
+    default:
+      return "Coś poszło nie tak przy logowaniu. Spróbuj jeszcze raz.";
+  }
 }
 
 function renderMonths() {
