@@ -64,6 +64,7 @@ const elements = {
   dayNotes: document.querySelector("#dayNotes"),
   detailBody: document.querySelector("#detailBody"),
   clearDayButton: document.querySelector("#clearDayButton"),
+  clearWeeklyPlanButton: document.querySelector("#clearWeeklyPlanButton"),
   lessonList: document.querySelector("#lessonList"),
   weeklyPlan: document.querySelector("#weeklyPlan"),
   daysRemaining: document.querySelector("#daysRemaining"),
@@ -216,6 +217,7 @@ function bindEvents() {
   });
 
   elements.clearDayButton?.addEventListener("click", clearSelectedDay);
+  elements.clearWeeklyPlanButton?.addEventListener("click", clearWeeklyPlan);
 
   elements.jumpToToday.addEventListener("click", goToTodayIfInYear);
 
@@ -632,6 +634,13 @@ function renderWeeklyPlan() {
           <div class="weekly-plan-grid-head">
             <strong>${short}</strong>
             <span>${countRemainingOccurrences(day, startDate, endDate)}</span>
+            <button
+              class="ghost-button clear-weekday-button"
+              type="button"
+              data-clear-weekday="${day}"
+            >
+              Wyczyść
+            </button>
           </div>
         `)
         .join("")}
@@ -674,6 +683,37 @@ function renderWeeklyPlan() {
       scheduleCalendarOnlyRefresh();
     });
   });
+
+  elements.weeklyPlan.querySelectorAll("[data-clear-weekday]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const day = Number(button.dataset.clearWeekday);
+      clearWeeklyPlanDay(day);
+    });
+  });
+}
+
+function clearWeeklyPlanDay(day) {
+  state.weeklyPlan[day] = ensureLessonSlots([]);
+  saveState();
+  renderWeeklyPlan();
+  renderSummary();
+  renderDays();
+  if (selectedDateKey) {
+    renderDayDetails();
+  }
+}
+
+function clearWeeklyPlan() {
+  trackedWeekdays.forEach(({ day }) => {
+    state.weeklyPlan[day] = ensureLessonSlots([]);
+  });
+  saveState();
+  renderWeeklyPlan();
+  renderSummary();
+  renderDays();
+  if (selectedDateKey) {
+    renderDayDetails();
+  }
 }
 
 function renderDays() {
@@ -1182,6 +1222,8 @@ function getSubjectShortLabel(subject = "") {
     "inf": "INF",
     "edukacja komputerowa": "EK",
     "ek": "EK",
+    "ai": "AI",
+    "sztuczna inteligencja": "AI",
     "zajęcia rozwijające": "ZR",
     "zajecia rozwijajace": "ZR",
     "zr": "ZR",
@@ -1223,6 +1265,10 @@ function getLessonBadgeClass(label = "") {
 
   if (normalized === "EK") {
     return "badge-ek";
+  }
+
+  if (normalized === "AI") {
+    return "badge-ai";
   }
 
   if (normalized === "INF") {

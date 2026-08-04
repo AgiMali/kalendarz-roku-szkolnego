@@ -15,12 +15,14 @@
   --lesson-zpt-soft: rgba(61, 139, 94, 0.16);
   --lesson-tech: #2f7a4f;
   --lesson-tech-soft: rgba(47, 122, 79, 0.14);
-  --lesson-inf: #1e4d7b;
-  --lesson-inf-soft: rgba(30, 77, 123, 0.16);
-  --lesson-zr: #4a7fb5;
-  --lesson-zr-soft: rgba(74, 127, 181, 0.16);
-  --lesson-ek: #5ba3d9;
-  --lesson-ek-soft: rgba(91, 163, 217, 0.18);
+  --lesson-inf: #35506e;
+  --lesson-inf-soft: rgba(53, 80, 110, 0.14);
+  --lesson-zr: #6a8499;
+  --lesson-zr-soft: rgba(106, 132, 153, 0.16);
+  --lesson-ek: #6f7db8;
+  --lesson-ek-soft: rgba(238, 240, 250, 0.95);
+  --lesson-ai: #9d6b8f;
+  --lesson-ai-soft: rgba(248, 235, 243, 0.95);
   --lesson-mzm: #3d8b5e;
   --lesson-mzm-soft: rgba(61, 139, 94, 0.16);
   --free-red: #b63b3b;
@@ -313,13 +315,19 @@ h1 {
 .subject-pill.badge-default {
   background: var(--lesson-ek-soft);
   color: var(--lesson-ek);
-  border-color: rgba(91, 163, 217, 0.18);
+  border-color: rgba(122, 135, 194, 0.22);
 }
 
 .subject-pill.badge-ek {
   background: var(--lesson-ek-soft);
   color: var(--lesson-ek);
-  border-color: rgba(91, 163, 217, 0.18);
+  border-color: rgba(122, 135, 194, 0.22);
+}
+
+.subject-pill.badge-ai {
+  background: var(--lesson-ai-soft);
+  color: var(--lesson-ai);
+  border-color: rgba(186, 125, 160, 0.24);
 }
 
 .subject-pill.badge-zpt {
@@ -337,13 +345,13 @@ h1 {
 .subject-pill.badge-inf {
   background: var(--lesson-inf-soft);
   color: var(--lesson-inf);
-  border-color: rgba(30, 77, 123, 0.16);
+  border-color: rgba(53, 80, 110, 0.16);
 }
 
 .subject-pill.badge-zr {
   background: var(--lesson-zr-soft);
   color: var(--lesson-zr);
-  border-color: rgba(74, 127, 181, 0.16);
+  border-color: rgba(106, 132, 153, 0.16);
 }
 
 .subject-pill.badge-mzm {
@@ -503,6 +511,11 @@ h1 {
   color: var(--lesson-ek);
 }
 
+.badge.lessons.badge-ai {
+  background: var(--lesson-ai-soft);
+  color: var(--lesson-ai);
+}
+
 .badge.lessons.badge-zpt {
   background: var(--lesson-zpt-soft);
   color: var(--lesson-zpt);
@@ -644,10 +657,7 @@ textarea {
   margin-bottom: 0;
 }
 
-.month-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+.weekly-plan-card .section-heading {
   align-items: center;
 }
 
@@ -795,6 +805,9 @@ textarea {
 }
 
 .weekly-plan-grid-head {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
   padding: 8px 6px;
   text-align: center;
 }
@@ -805,9 +818,15 @@ textarea {
 }
 
 .weekly-plan-grid-head span {
-  margin-top: 3px;
+  margin-top: 0;
   color: var(--muted);
   font-size: 0.68rem;
+}
+
+.clear-weekday-button {
+  padding: 3px 8px;
+  font-size: 0.72rem;
+  line-height: 1.2;
 }
 
 .weekly-plan-grid-head.corner,
