@@ -682,6 +682,28 @@ function renderWeeklyPlan() {
       saveState();
       scheduleCalendarOnlyRefresh();
     });
+
+    field.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter") {
+        return;
+      }
+
+      event.preventDefault();
+      const day = Number(field.dataset.weeklyDay);
+      const index = Number(field.dataset.weeklyIndex);
+      const key = field.dataset.weeklyField;
+      const nextIndex = event.shiftKey ? index - 1 : index + 1;
+
+      if (nextIndex < 0 || nextIndex >= DEFAULT_LESSON_SLOTS) {
+        return;
+      }
+
+      const nextField = elements.weeklyPlan.querySelector(
+        `[data-weekly-day="${day}"][data-weekly-index="${nextIndex}"][data-weekly-field="${key}"]`,
+      );
+      nextField?.focus();
+      nextField?.select();
+    });
   });
 
   elements.weeklyPlan.querySelectorAll("[data-clear-weekday]").forEach((button) => {
