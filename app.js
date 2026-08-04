@@ -891,10 +891,37 @@ function renderSummary() {
   elements.weekdayStats.innerHTML = trackedWeekdays
     .map(({ day, short }) => `<div class="weekday-pill"><strong>${weekdayCounts[day]}</strong><span>${short}</span></div>`)
     .join("");
+  const itSubjects = ["EK", "INF", "ZR"];
+  const techSubjects = ["TECH", "ZPT", "AI", "KT", "MZM"];
+  const itOrder = new Map(itSubjects.map((label, index) => [label, index]));
+  const techOrder = new Map(techSubjects.map((label, index) => [label, index]));
+
+  const sortBySubject = (orderMap) => (left, right) =>
+    (orderMap.get(left.subjectLabel) ?? 99) - (orderMap.get(right.subjectLabel) ?? 99) ||
+    left.groupLabel.localeCompare(right.groupLabel, "pl", { numeric: true });
+
+  const itCounts = classCounts
+    .filter((item) => itSubjects.includes(item.subjectLabel))
+    .sort(sortBySubject(itOrder));
+  const techCounts = classCounts
+    .filter((item) => techSubjects.includes(item.subjectLabel) || !itSubjects.includes(item.subjectLabel))
+    .filter((item) => !itSubjects.includes(item.subjectLabel))
+    .sort(sortBySubject(techOrder));
+
+  const renderPill = ({ label, count, subjectLabel }) =>
+    `<div class="subject-pill ${getLessonBadgeClass(subjectLabel)}"><strong>${count}</strong><span>${escapeHtml(label)}</span></div>`;
+
   elements.subjectStats.innerHTML = classCounts.length
-    ? classCounts
-      .map(({ label, count, subjectLabel }) => `<div class="subject-pill ${getLessonBadgeClass(subjectLabel)}"><strong>${count}</strong><span>${escapeHtml(label)}</span></div>`)
-      .join("")
+    ? `
+      <div class="subject-stats-column">
+        <p class="subject-stats-heading">Informatyczne</p>
+        ${itCounts.length ? itCounts.map(renderPill).join("") : '<p class="subject-empty">Brak wpisów</p>'}
+      </div>
+      <div class="subject-stats-column">
+        <p class="subject-stats-heading">Techniczne</p>
+        ${techCounts.length ? techCounts.map(renderPill).join("") : '<p class="subject-empty">Brak wpisów</p>'}
+      </div>
+    `
     : '<p class="subject-empty">Wpisz plan, a tutaj pokażą się godziny dla każdej klasy.</p>';
   elements.todayBadge.textContent = `Liczenie od: ${formatLongDate(startDate)}`;
 }
@@ -1224,6 +1251,9 @@ function getSubjectShortLabel(subject = "") {
     "ek": "EK",
     "ai": "AI",
     "sztuczna inteligencja": "AI",
+    "kt": "KT",
+    "kółko techniczne": "KT",
+    "kolko techniczne": "KT",
     "zajęcia rozwijające": "ZR",
     "zajecia rozwijajace": "ZR",
     "zr": "ZR",
@@ -1267,7 +1297,7 @@ function getLessonBadgeClass(label = "") {
     return "badge-ek";
   }
 
-  if (normalized === "AI") {
+  if (normalized === "AI" || normalized === "KT") {
     return "badge-ai";
   }
 
