@@ -139,6 +139,21 @@
             </div>
           </div>
 
+          <div class="day-status-grid">
+            <label class="full-width">
+              Status dnia
+              <select id="dayStatusType">
+                <option value="">Zwykły dzień</option>
+                <option value="no-didactic">Dzień wolny od zajęć dydaktycznych</option>
+                <option value="free-day">Dzień wolny</option>
+              </select>
+            </label>
+            <label class="full-width">
+              Nazwa / powód
+              <input id="dayStatusLabel" type="text" placeholder="Np. dzień dyrektorski, rekolekcje, egzamin">
+            </label>
+          </div>
+
           <label class="full-width">
             Notatki do dnia
             <textarea id="dayNotes" rows="3" placeholder="Np. rada pedagogiczna, wycieczka, sprawdzian, zebranie..."></textarea>

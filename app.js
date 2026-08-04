@@ -59,6 +59,8 @@ const elements = {
   detailCard: document.querySelector("#detailCard"),
   selectedDateTitle: document.querySelector("#selectedDateTitle"),
   selectedDateSubtitle: document.querySelector("#selectedDateSubtitle"),
+  dayStatusType: document.querySelector("#dayStatusType"),
+  dayStatusLabel: document.querySelector("#dayStatusLabel"),
   dayNotes: document.querySelector("#dayNotes"),
   lessonList: document.querySelector("#lessonList"),
   weeklyPlan: document.querySelector("#weeklyPlan"),
@@ -179,6 +181,19 @@ function bindEvents() {
     saveSelectedEntry(entry, false);
   });
 
+  elements.dayStatusType.addEventListener("change", () => {
+    const entry = getSelectedEntry();
+    entry.dayStatusType = elements.dayStatusType.value;
+    saveSelectedEntry(entry, false);
+    renderDayDetails();
+  });
+
+  elements.dayStatusLabel.addEventListener("input", () => {
+    const entry = getSelectedEntry();
+    entry.dayStatusLabel = elements.dayStatusLabel.value;
+    saveSelectedEntry(entry, false);
+  });
+
   elements.jumpToToday.addEventListener("click", goToTodayIfInYear);
 
   if (elements.exportData) {
@@ -260,6 +275,31 @@ function normalizeImportedState(rawState) {
     entries: rawState?.entries && typeof rawState.entries === "object" ? rawState.entries : {},
     weeklyPlan: normalizeWeeklyPlan(rawState?.weeklyPlan),
   };
+}
+
+function getCustomDayStatusInfo(dateKey) {
+  const entry = getEntry(dateKey);
+  if (!entry.dayStatusType) {
+    return null;
+  }
+
+  if (entry.dayStatusType === "no-didactic") {
+    return {
+      name: entry.dayStatusLabel?.trim() || "Dzień wolny od zajęć dydaktycznych",
+      short: "dyd.",
+      source: "custom",
+    };
+  }
+
+  if (entry.dayStatusType === "free-day") {
+    return {
+      name: entry.dayStatusLabel?.trim() || "Dzień wolny",
+      short: "wolne",
+      source: "custom",
+    };
+  }
+
+  return null;
 }
 
 function initFirebaseSync() {
@@ -589,7 +629,7 @@ function renderDays() {
       const free = isFreeDay(day.date);
       const lessonSummary = getLessonSummaryForDate(day.date);
       const notesPreview = getCalendarNotePreview(day.dateKey);
-      const holidayInfo = getHolidayInfo(day.date);
+      const holidayInfo = getResolvedHolidayInfo(day.date);
 
       return `
         <button
@@ -625,6 +665,10 @@ function renderDayDetails() {
     elements.detailCard.classList.add("detail-card-empty");
     elements.selectedDateTitle.textContent = "Szczegóły dnia";
     elements.selectedDateSubtitle.textContent = "Kliknij dzień w kalendarzu, aby wpisać temat lekcji i zaznaczenia.";
+    elements.dayStatusType.value = "";
+    elements.dayStatusLabel.value = "";
+    elements.dayStatusType.disabled = true;
+    elements.dayStatusLabel.disabled = true;
     elements.dayNotes.value = "";
     elements.dayNotes.disabled = true;
     elements.lessonList.innerHTML = '<p class="empty-state">Po wybraniu dnia pokażą się tutaj lekcje z planu i pola do wpisania tematu.</p>';
@@ -638,7 +682,11 @@ function renderDayDetails() {
   const weekdayProgress = getWeekdayProgress(date);
 
   elements.selectedDateTitle.textContent = formatLongDate(date);
-  elements.selectedDateSubtitle.textContent = buildSelectedDateSubtitle(date, weekdayProgress);
+  elements.selectedDateSubtitle.textContent = buildSelectedDateSubtitleResolved(date, weekdayProgress);
+  elements.dayStatusType.disabled = false;
+  elements.dayStatusLabel.disabled = false;
+  elements.dayStatusType.value = entry.dayStatusType ?? "";
+  elements.dayStatusLabel.value = entry.dayStatusLabel ?? "";
   elements.dayNotes.disabled = false;
   elements.dayNotes.value = entry.notes ?? "";
   elements.lessonList.innerHTML = "";
@@ -901,6 +949,8 @@ function getSelectedEntry() {
 function getEntry(dateKey) {
   const saved = state.entries[dateKey];
   return {
+    dayStatusType: saved?.dayStatusType ?? "",
+    dayStatusLabel: saved?.dayStatusLabel ?? "",
     notes: saved?.notes ?? "",
     lessonData: saved?.lessonData ?? {},
   };
@@ -912,7 +962,7 @@ function isWeekend(date) {
 }
 
 function isFreeDay(date) {
-  return isWeekend(date) || Boolean(getHolidayInfo(date));
+  return isWeekend(date) || Boolean(getResolvedHolidayInfo(date));
 }
 
 function createWeeklyLesson() {
@@ -1219,6 +1269,32 @@ function formatLongDate(date) {
     month: "long",
     year: "numeric",
   }).format(date);
+}
+
+function buildSelectedDateSubtitleResolved(date, weekdayProgress) {
+  if (!weekdayProgress) {
+    return "Weekend nie liczy się do dni nauki.";
+  }
+
+  const dayName = weekdayNames[date.getDay()].toLowerCase();
+  const holidayInfo = getResolvedHolidayInfo(date);
+
+  if (holidayInfo) {
+    return holidayInfo.source === "custom"
+      ? `${holidayInfo.name}. Ten dzień jest oznaczony jako wolny w Twoim kalendarzu.`
+      : `${holidayInfo.name}. Ten dzień jest automatycznie liczony jako wolny.`;
+  }
+
+  return `To ${weekdayProgress.order}. ${dayName} roku szkolnego. Po tym dniu zostaje jeszcze ${weekdayProgress.remainingAfter} takich dni nauki.`;
+}
+
+function getResolvedHolidayInfo(date) {
+  const customDayStatus = getCustomDayStatusInfo(buildDateKey(date));
+  if (customDayStatus) {
+    return customDayStatus;
+  }
+
+  return getHolidayInfo(date);
 }
 
 function buildDateKey(date) {

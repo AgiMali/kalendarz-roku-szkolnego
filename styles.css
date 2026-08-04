@@ -605,6 +605,13 @@ textarea {
   background: rgba(245, 239, 227, 0.7);
 }
 
+.day-status-grid {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.9fr) minmax(240px, 1.1fr);
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
 .lesson-compact-grid {
   display: grid;
   grid-template-columns: minmax(220px, 1.5fr) minmax(160px, 1fr) auto auto minmax(140px, 0.9fr);
@@ -769,6 +776,10 @@ textarea {
   }
 
   .lesson-compact-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .day-status-grid {
     grid-template-columns: 1fr;
   }
 
