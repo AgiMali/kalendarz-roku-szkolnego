@@ -11,20 +11,20 @@
   --success: #4f7c4c;
   --lesson-green: #2f7a4f;
   --lesson-green-soft: rgba(47, 122, 79, 0.14);
-  --lesson-zpt: #3d8b5e;
-  --lesson-zpt-soft: rgba(61, 139, 94, 0.16);
-  --lesson-tech: #2f7a4f;
-  --lesson-tech-soft: rgba(47, 122, 79, 0.14);
-  --lesson-inf: #35506e;
-  --lesson-inf-soft: rgba(53, 80, 110, 0.14);
-  --lesson-zr: #6a8499;
-  --lesson-zr-soft: rgba(106, 132, 153, 0.16);
-  --lesson-ek: #6f7db8;
+  --lesson-zpt: #2f7a4f;
+  --lesson-zpt-soft: rgba(47, 122, 79, 0.16);
+  --lesson-tech: #2a8f8a;
+  --lesson-tech-soft: rgba(42, 143, 138, 0.16);
+  --lesson-inf: #2c3e5c;
+  --lesson-inf-soft: rgba(44, 62, 92, 0.14);
+  --lesson-zr: #6f8a5c;
+  --lesson-zr-soft: rgba(111, 138, 92, 0.16);
+  --lesson-ek: #7a6fb8;
   --lesson-ek-soft: rgba(238, 240, 250, 0.95);
   --lesson-ai: #9d6b8f;
   --lesson-ai-soft: rgba(248, 235, 243, 0.95);
-  --lesson-mzm: #3d8b5e;
-  --lesson-mzm-soft: rgba(61, 139, 94, 0.16);
+  --lesson-mzm: #2f7a4f;
+  --lesson-mzm-soft: rgba(47, 122, 79, 0.16);
   --free-red: #b63b3b;
   --free-red-soft: rgba(182, 59, 59, 0.14);
   --mon: #f8ece1;
@@ -315,13 +315,13 @@ h1 {
 .subject-pill.badge-default {
   background: var(--lesson-ek-soft);
   color: var(--lesson-ek);
-  border-color: rgba(122, 135, 194, 0.22);
+  border-color: rgba(122, 111, 184, 0.22);
 }
 
 .subject-pill.badge-ek {
   background: var(--lesson-ek-soft);
   color: var(--lesson-ek);
-  border-color: rgba(122, 135, 194, 0.22);
+  border-color: rgba(122, 111, 184, 0.22);
 }
 
 .subject-pill.badge-ai {
@@ -333,31 +333,31 @@ h1 {
 .subject-pill.badge-zpt {
   background: var(--lesson-zpt-soft);
   color: var(--lesson-zpt);
-  border-color: rgba(61, 139, 94, 0.16);
+  border-color: rgba(47, 122, 79, 0.16);
 }
 
 .subject-pill.badge-tech {
   background: var(--lesson-tech-soft);
   color: var(--lesson-tech);
-  border-color: rgba(47, 122, 79, 0.14);
+  border-color: rgba(42, 143, 138, 0.18);
 }
 
 .subject-pill.badge-inf {
   background: var(--lesson-inf-soft);
   color: var(--lesson-inf);
-  border-color: rgba(53, 80, 110, 0.16);
+  border-color: rgba(44, 62, 92, 0.16);
 }
 
 .subject-pill.badge-zr {
   background: var(--lesson-zr-soft);
   color: var(--lesson-zr);
-  border-color: rgba(106, 132, 153, 0.16);
+  border-color: rgba(111, 138, 92, 0.18);
 }
 
 .subject-pill.badge-mzm {
   background: var(--lesson-mzm-soft);
   color: var(--lesson-mzm);
-  border-color: rgba(61, 139, 94, 0.16);
+  border-color: rgba(47, 122, 79, 0.16);
 }
 
 .subject-empty {
