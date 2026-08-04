@@ -913,8 +913,8 @@ function renderSummary() {
   elements.weekdayStats.innerHTML = trackedWeekdays
     .map(({ day, short }) => `<div class="weekday-pill"><strong>${weekdayCounts[day]}</strong><span>${short}</span></div>`)
     .join("");
-  const itSubjects = ["EK", "INF", "ZR"];
-  const techSubjects = ["TECH", "ZPT", "AI", "KT", "MZM"];
+  const itSubjects = ["EK", "INF", "ZR", "AI"];
+  const techSubjects = ["TECH", "ZPT", "KT", "MZM"];
   const itOrder = new Map(itSubjects.map((label, index) => [label, index]));
   const techOrder = new Map(techSubjects.map((label, index) => [label, index]));
 
