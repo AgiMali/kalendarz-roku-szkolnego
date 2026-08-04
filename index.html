@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Kalendarz roku szkolnego</title>
-  <link rel="stylesheet" href="styles.css?v=20260804-1">
+  <link rel="stylesheet" href="styles.css?v=20260804-13">
 </head>
 <body>
   <div class="app-shell">
@@ -116,7 +116,12 @@
               <h2 id="monthTitle">Miesiąc</h2>
               <p id="monthMeta">Wybierz miesiąc, aby zobaczyć dni.</p>
             </div>
-            <button id="jumpToToday" class="secondary-button" type="button">Przejdź do dzisiaj</button>
+            <div class="month-actions">
+              <button id="clearDayButton" class="ghost-button clear-day-button" type="button" hidden>
+                Wyczyść dzień
+              </button>
+              <button id="jumpToToday" class="secondary-button" type="button">Przejdź do dzisiaj</button>
+            </div>
           </div>
           <div id="dayGrid" class="day-grid"></div>
         </section>
@@ -131,39 +136,41 @@
           <div id="weeklyPlan" class="weekly-plan"></div>
         </section>
 
-        <section id="detailCard" class="card detail-card">
+        <section id="detailCard" class="card detail-card detail-card-empty">
           <div class="section-heading">
             <div>
               <h2 id="selectedDateTitle">Szczegóły dnia</h2>
-              <p id="selectedDateSubtitle">Wybierz dzień w kalendarzu.</p>
+              <p id="selectedDateSubtitle">Kliknij dzień w kalendarzu, aby wpisać temat lekcji i zaznaczenia.</p>
             </div>
           </div>
 
-          <div class="day-status-grid">
-            <label class="full-width">
-              Status dnia
-              <select id="dayStatusType">
-                <option value="">Zwykły dzień</option>
-                <option value="no-didactic">Dzień wolny od zajęć dydaktycznych</option>
-                <option value="free-day">Dzień wolny</option>
-              </select>
-            </label>
-            <label class="full-width">
-              Nazwa / powód
-              <input id="dayStatusLabel" type="text" placeholder="Np. dzień dyrektorski, rekolekcje, egzamin">
-            </label>
+          <div id="detailBody" class="detail-body" hidden>
+            <div class="status-block">
+              <span class="field-label">Status dnia</span>
+              <div id="dayStatusOptions" class="status-options">
+                <button type="button" class="status-chip" data-status="">Zwykły dzień</button>
+                <button type="button" class="status-chip" data-status="no-didactic">Wolny od dydaktyki</button>
+                <button type="button" class="status-chip" data-status="free-day">Dzień wolny</button>
+              </div>
+            </div>
+
+            <div class="day-meta-row">
+              <label>
+                Nazwa / powód
+                <input id="dayStatusLabel" type="text" placeholder="Np. DEN, rekolekcje, egzamin">
+              </label>
+              <label>
+                Notatki do dnia
+                <input id="dayNotes" type="text" placeholder="Np. rada, wycieczka, sprawdzian...">
+              </label>
+            </div>
+
+            <div class="lessons-header">
+              <h3>Lekcje i tematy na ten dzień</h3>
+            </div>
+
+            <div id="lessonList" class="lesson-list"></div>
           </div>
-
-          <label class="full-width">
-            Notatki do dnia
-            <textarea id="dayNotes" rows="3" placeholder="Np. rada pedagogiczna, wycieczka, sprawdzian, zebranie..."></textarea>
-          </label>
-
-          <div class="lessons-header">
-            <h3>Lekcje i tematy na ten dzień</h3>
-          </div>
-
-          <div id="lessonList" class="lesson-list"></div>
         </section>
 
       </section>
@@ -201,6 +208,6 @@
     </article>
   </template>
 
-  <script type="module" src="app.js?v=20260804-1"></script>
+  <script type="module" src="app.js?v=20260804-13"></script>
 </body>
 </html>

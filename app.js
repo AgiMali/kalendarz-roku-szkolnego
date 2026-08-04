@@ -59,9 +59,11 @@ const elements = {
   detailCard: document.querySelector("#detailCard"),
   selectedDateTitle: document.querySelector("#selectedDateTitle"),
   selectedDateSubtitle: document.querySelector("#selectedDateSubtitle"),
-  dayStatusType: document.querySelector("#dayStatusType"),
+  dayStatusOptions: document.querySelector("#dayStatusOptions"),
   dayStatusLabel: document.querySelector("#dayStatusLabel"),
   dayNotes: document.querySelector("#dayNotes"),
+  detailBody: document.querySelector("#detailBody"),
+  clearDayButton: document.querySelector("#clearDayButton"),
   lessonList: document.querySelector("#lessonList"),
   weeklyPlan: document.querySelector("#weeklyPlan"),
   daysRemaining: document.querySelector("#daysRemaining"),
@@ -98,6 +100,8 @@ let currentUser = null;
 let cloudUnsubscribe = null;
 let isApplyingRemoteState = false;
 let saveTimeoutId = null;
+let calendarRefreshTimeoutId = null;
+let pendingRemoteRender = false;
 let lastSerializedState = JSON.stringify(state);
 
 init();
@@ -176,23 +180,42 @@ function bindEvents() {
   });
 
   elements.dayNotes.addEventListener("input", () => {
+    if (!selectedDateKey) {
+      return;
+    }
     const entry = getSelectedEntry();
     entry.notes = elements.dayNotes.value;
-    saveSelectedEntry(entry, false);
+    persistEntryWithoutUiRefresh(entry);
+    scheduleCalendarOnlyRefresh();
   });
 
-  elements.dayStatusType.addEventListener("change", () => {
+  elements.dayStatusOptions?.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-status]");
+    if (!button || !selectedDateKey) {
+      return;
+    }
+
     const entry = getSelectedEntry();
-    entry.dayStatusType = elements.dayStatusType.value;
-    saveSelectedEntry(entry, false);
+    entry.dayStatusType = button.dataset.status ?? "";
+    state.entries[selectedDateKey] = entry;
+    saveState();
+    syncStatusChips(entry.dayStatusType);
+    renderSummary();
+    renderDays();
     renderDayDetails();
   });
 
   elements.dayStatusLabel.addEventListener("input", () => {
+    if (!selectedDateKey) {
+      return;
+    }
     const entry = getSelectedEntry();
     entry.dayStatusLabel = elements.dayStatusLabel.value;
-    saveSelectedEntry(entry, false);
+    persistEntryWithoutUiRefresh(entry);
+    scheduleCalendarOnlyRefresh();
   });
+
+  elements.clearDayButton?.addEventListener("click", clearSelectedDay);
 
   elements.jumpToToday.addEventListener("click", goToTodayIfInYear);
 
@@ -284,17 +307,21 @@ function getCustomDayStatusInfo(dateKey) {
   }
 
   if (entry.dayStatusType === "no-didactic") {
+    const label = entry.dayStatusLabel?.trim();
     return {
-      name: entry.dayStatusLabel?.trim() || "Dzień wolny od zajęć dydaktycznych",
-      short: "dyd.",
+      name: label || "Wolny od dydaktyki",
+      short: label || "wolny",
+      type: "no-didactic",
       source: "custom",
     };
   }
 
   if (entry.dayStatusType === "free-day") {
+    const label = entry.dayStatusLabel?.trim();
     return {
-      name: entry.dayStatusLabel?.trim() || "Dzień wolny",
-      short: "wolne",
+      name: label || "Dzień wolny",
+      short: label || "wolne",
+      type: "free-day",
       source: "custom",
     };
   }
@@ -446,14 +473,59 @@ function startCloudSubscription() {
 }
 
 function applyRemoteState(remoteState) {
+  const previousDateKey = selectedDateKey;
+  const previousMonthIndex = selectedMonthIndex;
+
   isApplyingRemoteState = true;
   state = normalizeImportedState(remoteState);
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   lastSerializedState = JSON.stringify(state);
   hydrateControls();
-  ensureSelectedDate();
+
+  if (previousDateKey) {
+    selectedDateKey = previousDateKey;
+    selectedMonthIndex = previousMonthIndex;
+  } else {
+    ensureSelectedDate();
+  }
+
+  if (isEditingPlannerFields()) {
+    pendingRemoteRender = true;
+    isApplyingRemoteState = false;
+    return;
+  }
+
+  pendingRemoteRender = false;
   render();
   isApplyingRemoteState = false;
+}
+
+function isEditingPlannerFields() {
+  const active = document.activeElement;
+  if (!active) {
+    return false;
+  }
+
+  const tag = active.tagName;
+  if (tag !== "INPUT" && tag !== "TEXTAREA" && tag !== "SELECT") {
+    return false;
+  }
+
+  return Boolean(
+    active.closest("#detailBody") ||
+      active.closest("#weeklyPlan") ||
+      active === elements.dayStatusLabel ||
+      active === elements.dayNotes,
+  );
+}
+
+function flushPendingRemoteRender() {
+  if (!pendingRemoteRender || isEditingPlannerFields()) {
+    return;
+  }
+
+  pendingRemoteRender = false;
+  render();
 }
 
 function queueCloudSave() {
@@ -575,7 +647,6 @@ function renderWeeklyPlan() {
                   data-weekly-index="${index}"
                   data-weekly-field="group"
                   type="text"
-                  placeholder="np. 4a"
                   value="${escapeHtml(lesson.group)}"
                 >
                 <input
@@ -583,7 +654,6 @@ function renderWeeklyPlan() {
                   data-weekly-index="${index}"
                   data-weekly-field="subject"
                   type="text"
-                  placeholder="przedmiot"
                   value="${escapeHtml(lesson.subject)}"
                 >
               </div>
@@ -601,11 +671,7 @@ function renderWeeklyPlan() {
       const key = field.dataset.weeklyField;
       state.weeklyPlan[day][index][key] = field.value;
       saveState();
-      renderSummary();
-      renderDays();
-      if (selectedDateKey && parseDateKey(selectedDateKey).getDay() === day) {
-        renderDayDetails();
-      }
+      scheduleCalendarOnlyRefresh();
     });
   });
 }
@@ -630,10 +696,14 @@ function renderDays() {
       const lessonSummary = getLessonSummaryForDate(day.date);
       const notesPreview = getCalendarNotePreview(day.dateKey);
       const holidayInfo = getResolvedHolidayInfo(day.date);
+      const freeKind = holidayInfo?.type === "no-didactic" ? "no-didactic" : free ? "free-day" : "";
+      const freeReason = free && holidayInfo
+        ? escapeHtml(holidayInfo.name || holidayInfo.short || "wolne")
+        : "";
 
       return `
         <button
-          class="day-button ${selectedDateKey === day.dateKey ? "active" : ""} ${free ? "free-day" : ""}"
+          class="day-button ${selectedDateKey === day.dateKey ? "active" : ""} ${freeKind}"
           type="button"
           data-date-key="${day.dateKey}"
         >
@@ -641,9 +711,9 @@ function renderDays() {
           <span class="day-name">${weekdayNames[day.date.getDay()]}</span>
           <div class="day-badges">
             ${free ? "" : lessonSummary.map((item) => `<span class="badge lessons ${getLessonBadgeClass(item.label)}">${item.count} ${escapeHtml(item.label)}</span>`).join("")}
-            ${free ? `<span class="badge free">${holidayInfo ? holidayInfo.short : "wolne"}</span>` : ""}
           </div>
-          ${notesPreview.length ? `<div class="day-topics">${notesPreview.map((note) => `<span class="day-topic">${note}</span>`).join("")}</div>` : ""}
+          ${freeReason ? `<div class="day-topics"><span class="day-topic free-day-reason">${freeReason}</span></div>` : ""}
+          ${notesPreview.length ? `<div class="day-topics">${notesPreview.map((note) => `<span class="day-topic">${escapeHtml(note)}</span>`).join("")}</div>` : ""}
         </button>
       `;
     })
@@ -652,30 +722,56 @@ function renderDays() {
   elements.dayGrid.innerHTML = `${headerMarkup}${placeholderMarkup}${dayMarkup}`;
 
   elements.dayGrid.querySelectorAll(".day-button").forEach((button) => {
-    button.addEventListener("click", () => {
+    button.addEventListener("mousedown", (event) => {
+      event.preventDefault();
       selectedDateKey = button.dataset.dateKey;
+      window.clearTimeout(calendarRefreshTimeoutId);
+      calendarRefreshTimeoutId = null;
       renderDays();
       renderDayDetails();
     });
   });
 }
 
+function syncStatusChips(statusType = "") {
+  if (!elements.dayStatusOptions) {
+    return;
+  }
+
+  elements.dayStatusOptions.querySelectorAll("[data-status]").forEach((button) => {
+    button.classList.toggle("active", button.dataset.status === statusType);
+  });
+}
+
+function clearSelectedDay() {
+  if (!selectedDateKey) {
+    return;
+  }
+
+  delete state.entries[selectedDateKey];
+  saveState();
+  renderSummary();
+  renderDays();
+  renderDayDetails();
+}
+
 function renderDayDetails() {
   if (!selectedDateKey) {
     elements.detailCard.classList.add("detail-card-empty");
+    elements.detailBody.hidden = true;
+    if (elements.clearDayButton) {
+      elements.clearDayButton.hidden = true;
+    }
     elements.selectedDateTitle.textContent = "Szczegóły dnia";
     elements.selectedDateSubtitle.textContent = "Kliknij dzień w kalendarzu, aby wpisać temat lekcji i zaznaczenia.";
-    elements.dayStatusType.value = "";
-    elements.dayStatusLabel.value = "";
-    elements.dayStatusType.disabled = true;
-    elements.dayStatusLabel.disabled = true;
-    elements.dayNotes.value = "";
-    elements.dayNotes.disabled = true;
-    elements.lessonList.innerHTML = '<p class="empty-state">Po wybraniu dnia pokażą się tutaj lekcje z planu i pola do wpisania tematu.</p>';
     return;
   }
 
   elements.detailCard.classList.remove("detail-card-empty");
+  elements.detailBody.hidden = false;
+  if (elements.clearDayButton) {
+    elements.clearDayButton.hidden = false;
+  }
   const date = parseDateKey(selectedDateKey);
   const entry = getSelectedEntry();
   const lessons = getScheduledLessonsForDate(date);
@@ -683,12 +779,16 @@ function renderDayDetails() {
 
   elements.selectedDateTitle.textContent = formatLongDate(date);
   elements.selectedDateSubtitle.textContent = buildSelectedDateSubtitleResolved(date, weekdayProgress);
-  elements.dayStatusType.disabled = false;
   elements.dayStatusLabel.disabled = false;
-  elements.dayStatusType.value = entry.dayStatusType ?? "";
-  elements.dayStatusLabel.value = entry.dayStatusLabel ?? "";
   elements.dayNotes.disabled = false;
-  elements.dayNotes.value = entry.notes ?? "";
+  syncStatusChips(entry.dayStatusType ?? "");
+
+  if (document.activeElement !== elements.dayStatusLabel) {
+    elements.dayStatusLabel.value = entry.dayStatusLabel ?? "";
+  }
+  if (document.activeElement !== elements.dayNotes) {
+    elements.dayNotes.value = entry.notes ?? "";
+  }
   elements.lessonList.innerHTML = "";
 
   if (!lessons.length) {
@@ -717,8 +817,23 @@ function renderDayDetails() {
         const currentLesson = getDayLessonData(currentEntry, index);
         currentLesson[key] = field.type === "checkbox" ? field.checked : field.value;
         currentEntry.lessonData[index] = currentLesson;
-        saveSelectedEntry(currentEntry, false);
+        persistEntryWithoutUiRefresh(currentEntry);
+        if (field.type !== "checkbox") {
+          scheduleCalendarOnlyRefresh();
+        }
       });
+
+      if (field.type === "checkbox") {
+        field.addEventListener("change", () => {
+          const currentEntry = getSelectedEntry();
+          const currentLesson = getDayLessonData(currentEntry, index);
+          currentLesson[key] = field.checked;
+          currentEntry.lessonData[index] = currentLesson;
+          persistEntryWithoutUiRefresh(currentEntry);
+          renderSummary();
+          renderDays();
+        });
+      }
     });
 
     elements.lessonList.appendChild(clone);
@@ -854,6 +969,48 @@ function calculateWeekdayCounts(startDate, endDate) {
   }
 
   return counts;
+}
+
+function persistEntryWithoutUiRefresh(entry) {
+  if (!selectedDateKey) {
+    return;
+  }
+
+  state.entries[selectedDateKey] = entry;
+  saveState();
+}
+
+function scheduleCalendarOnlyRefresh() {
+  window.clearTimeout(calendarRefreshTimeoutId);
+  calendarRefreshTimeoutId = window.setTimeout(() => {
+    renderSummary();
+    renderDays();
+  }, 350);
+}
+
+function refreshUiAfterEdit() {
+  window.clearTimeout(calendarRefreshTimeoutId);
+  calendarRefreshTimeoutId = null;
+  renderSummary();
+  renderDays();
+  flushPendingRemoteRender();
+}
+
+function renderDayDetailsPreservingFocus() {
+  renderDayDetails();
+}
+
+function scheduleCalendarRefresh() {
+  scheduleCalendarOnlyRefresh();
+}
+
+function flushCalendarRefresh() {
+  refreshUiAfterEdit();
+}
+
+function saveEntryQuietly(entry) {
+  persistEntryWithoutUiRefresh(entry);
+  scheduleCalendarOnlyRefresh();
 }
 
 function saveSelectedEntry(entry, rerender = true) {
@@ -1023,6 +1180,8 @@ function getSubjectShortLabel(subject = "") {
   const shortcuts = {
     "informatyka": "INF",
     "inf": "INF",
+    "edukacja komputerowa": "EK",
+    "ek": "EK",
     "zajęcia rozwijające": "ZR",
     "zajecia rozwijajace": "ZR",
     "zr": "ZR",
@@ -1031,6 +1190,7 @@ function getSubjectShortLabel(subject = "") {
     "zajecia praktyczno-techniczne": "ZPT",
     "technika": "TECH",
     "tech": "TECH",
+    "tec": "TECH",
     "majsterkuj z malinką": "MZM",
     "majsterkuj z malinka": "MZM",
     "mzm": "MZM",
@@ -1060,6 +1220,10 @@ function getSubjectShortLabel(subject = "") {
 
 function getLessonBadgeClass(label = "") {
   const normalized = label.trim().toUpperCase();
+
+  if (normalized === "EK") {
+    return "badge-ek";
+  }
 
   if (normalized === "INF") {
     return "badge-inf";
