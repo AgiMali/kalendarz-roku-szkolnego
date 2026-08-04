@@ -17,8 +17,8 @@
   --lesson-tech-soft: rgba(42, 143, 138, 0.16);
   --lesson-inf: #2c3e5c;
   --lesson-inf-soft: rgba(44, 62, 92, 0.14);
-  --lesson-zr: #6f8a5c;
-  --lesson-zr-soft: rgba(111, 138, 92, 0.16);
+  --lesson-zr: #5b7c9a;
+  --lesson-zr-soft: rgba(91, 124, 154, 0.16);
   --lesson-ek: #7a6fb8;
   --lesson-ek-soft: rgba(238, 240, 250, 0.95);
   --lesson-ai: #9d6b8f;
@@ -367,7 +367,7 @@ h1 {
 .subject-pill.badge-zr {
   background: var(--lesson-zr-soft);
   color: var(--lesson-zr);
-  border-color: rgba(111, 138, 92, 0.18);
+  border-color: rgba(91, 124, 154, 0.18);
 }
 
 .subject-pill.badge-mzm {
