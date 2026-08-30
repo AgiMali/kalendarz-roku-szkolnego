@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Kalendarz roku szkolnego</title>
-  <link rel="stylesheet" href="styles.css?v=20260804-21">
+  <link rel="stylesheet" href="styles.css?v=20260830-4">
 </head>
 <body>
   <div class="app-shell">
@@ -169,7 +169,12 @@
             </div>
 
             <div class="lessons-header">
-              <h3>Lekcje i tematy na ten dzień</h3>
+              <div>
+                <h3>Lekcje i tematy na ten dzień</h3>
+              </div>
+              <button id="addSubstituteLesson" class="secondary-button" type="button">
+                Dodaj zastępstwo
+              </button>
             </div>
 
             <div id="lessonList" class="lesson-list"></div>
@@ -183,8 +188,18 @@
   <template id="lessonTemplate">
     <article class="lesson-item">
       <div class="lesson-topbar">
-        <strong class="lesson-number"></strong>
-        <span class="lesson-label"></span>
+        <strong class="lesson-label"></strong>
+        <button class="ghost-button remove-extra-lesson" type="button" hidden>Usuń</button>
+      </div>
+      <div class="extra-lesson-fields" hidden>
+        <label>
+          Klasa
+          <input data-extra-field="group" type="text" placeholder="Np. 4a">
+        </label>
+        <label>
+          Przedmiot
+          <input data-extra-field="subject" type="text" placeholder="Np. TECH">
+        </label>
       </div>
       <div class="lesson-compact-grid">
         <label class="full-width">
@@ -203,14 +218,22 @@
           <input data-field="canceled" type="checkbox">
           <span>Nie odbyła się</span>
         </label>
+        <label class="checkbox-row">
+          <input data-field="substitute" type="checkbox">
+          <span>Zastępstwo</span>
+        </label>
         <label class="full-width">
           Powód
           <input data-field="canceledReason" type="text" placeholder="Np. akademia">
+        </label>
+        <label class="full-width">
+          Zastępstwo — szczegóły
+          <input data-field="substituteNote" type="text" placeholder="Np. ja za 4a / Nowak za mnie">
         </label>
       </div>
     </article>
   </template>
 
-  <script type="module" src="app.js?v=20260804-21"></script>
+  <script type="module" src="app.js?v=20260830-4"></script>
 </body>
 </html>

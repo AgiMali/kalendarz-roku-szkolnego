@@ -65,6 +65,7 @@ const elements = {
   detailBody: document.querySelector("#detailBody"),
   clearDayButton: document.querySelector("#clearDayButton"),
   clearWeeklyPlanButton: document.querySelector("#clearWeeklyPlanButton"),
+  addSubstituteLesson: document.querySelector("#addSubstituteLesson"),
   lessonList: document.querySelector("#lessonList"),
   weeklyPlan: document.querySelector("#weeklyPlan"),
   daysRemaining: document.querySelector("#daysRemaining"),
@@ -218,6 +219,7 @@ function bindEvents() {
 
   elements.clearDayButton?.addEventListener("click", clearSelectedDay);
   elements.clearWeeklyPlanButton?.addEventListener("click", clearWeeklyPlan);
+  elements.addSubstituteLesson?.addEventListener("click", addSubstituteLesson);
 
   elements.jumpToToday.addEventListener("click", goToTodayIfInYear);
 
@@ -755,7 +757,9 @@ function renderDays() {
   const dayMarkup = weekdaysOnly
     .map((day) => {
       const free = isFreeDay(day.date);
-      const lessonSummary = getLessonSummaryForDate(day.date);
+      const plannedCount = free ? 0 : getScheduledLessonsForDate(day.date).length;
+      const extraCount = getExtraLessons(day.dateKey).length;
+      const lessonCount = plannedCount + extraCount;
       const notesPreview = getCalendarNotePreview(day.dateKey);
       const holidayInfo = getResolvedHolidayInfo(day.date);
       const freeKind = holidayInfo?.type === "no-didactic" ? "no-didactic" : free ? "free-day" : "";
@@ -772,7 +776,7 @@ function renderDays() {
           <span class="day-number">${day.date.getDate()}</span>
           <span class="day-name">${weekdayNames[day.date.getDay()]}</span>
           <div class="day-badges">
-            ${free ? "" : lessonSummary.map((item) => `<span class="badge lessons ${getLessonBadgeClass(item.label)}">${item.count} ${escapeHtml(item.label)}</span>`).join("")}
+            ${!free && lessonCount > 0 ? `<span class="badge lessons badge-hours">${lessonCount} godz.</span>` : ""}
           </div>
           ${freeReason ? `<div class="day-topics"><span class="day-topic free-day-reason">${freeReason}</span></div>` : ""}
           ${notesPreview.length ? `<div class="day-topics">${notesPreview.map((note) => `<span class="day-topic">${escapeHtml(note)}</span>`).join("")}</div>` : ""}
@@ -817,6 +821,97 @@ function clearSelectedDay() {
   renderDayDetails();
 }
 
+function createExtraLesson() {
+  return {
+    subject: "",
+    group: "",
+    topic: "",
+    notes: "",
+    completed: false,
+    canceled: false,
+    canceledReason: "",
+    substitute: true,
+    substituteNote: "",
+  };
+}
+
+function getExtraLessons(dateKey) {
+  const saved = state.entries[dateKey]?.extraLessons;
+  return Array.isArray(saved) ? saved.map((lesson) => normalizeExtraLesson(lesson)) : [];
+}
+
+function normalizeExtraLesson(lesson = {}) {
+  return {
+    subject: lesson.subject ?? "",
+    group: lesson.group ?? "",
+    topic: lesson.topic ?? "",
+    notes: lesson.notes ?? "",
+    completed: Boolean(lesson.completed),
+    canceled: Boolean(lesson.canceled),
+    canceledReason: lesson.canceledReason ?? "",
+    substitute: lesson.substitute !== false,
+    substituteNote: lesson.substituteNote ?? "",
+  };
+}
+
+function addSubstituteLesson() {
+  if (!selectedDateKey) {
+    return;
+  }
+
+  const entry = getSelectedEntry();
+  entry.extraLessons = [...getExtraLessons(selectedDateKey), createExtraLesson()];
+  persistEntryWithoutUiRefresh(entry);
+  renderDayDetails();
+  renderDays();
+  renderSummary();
+}
+
+function removeExtraLesson(index) {
+  if (!selectedDateKey) {
+    return;
+  }
+
+  const entry = getSelectedEntry();
+  entry.extraLessons = getExtraLessons(selectedDateKey).filter((_, itemIndex) => itemIndex !== index);
+  persistEntryWithoutUiRefresh(entry);
+  renderDayDetails();
+  renderDays();
+  renderSummary();
+}
+
+function bindLessonFields(clone, getLesson, saveLesson) {
+  clone.querySelectorAll("[data-field]").forEach((field) => {
+    const key = field.dataset.field;
+    const lesson = getLesson();
+
+    if (field.type === "checkbox") {
+      field.checked = Boolean(lesson[key]);
+    } else {
+      field.value = lesson[key] ?? "";
+    }
+
+    field.addEventListener("input", () => {
+      const currentLesson = getLesson();
+      currentLesson[key] = field.type === "checkbox" ? field.checked : field.value;
+      saveLesson(currentLesson);
+      if (field.type !== "checkbox") {
+        scheduleCalendarOnlyRefresh();
+      }
+    });
+
+    if (field.type === "checkbox") {
+      field.addEventListener("change", () => {
+        const currentLesson = getLesson();
+        currentLesson[key] = field.checked;
+        saveLesson(currentLesson);
+        renderSummary();
+        renderDays();
+      });
+    }
+  });
+}
+
 function renderDayDetails() {
   if (!selectedDateKey) {
     elements.detailCard.classList.add("detail-card-empty");
@@ -837,6 +932,7 @@ function renderDayDetails() {
   const date = parseDateKey(selectedDateKey);
   const entry = getSelectedEntry();
   const lessons = getScheduledLessonsForDate(date);
+  const extraLessons = getExtraLessons(selectedDateKey);
   const weekdayProgress = getWeekdayProgress(date);
 
   elements.selectedDateTitle.textContent = formatLongDate(date);
@@ -852,51 +948,77 @@ function renderDayDetails() {
     elements.dayNotes.value = entry.notes ?? "";
   }
   elements.lessonList.innerHTML = "";
-
-  if (!lessons.length) {
-    elements.lessonList.innerHTML = '<p class="empty-state">Na ten dzień nie ma lekcji w stałym planie. Możesz zostawić notatkę albo oznaczyć wyjątek.</p>';
-    return;
-  }
-
   elements.lessonList.classList.add("compact-lessons");
+
+  if (!lessons.length && !extraLessons.length) {
+    elements.lessonList.innerHTML = '<p class="empty-state">Na ten dzień nie ma lekcji w stałym planie. Możesz dodać zastępstwo albo zostawić notatkę.</p>';
+  }
 
   lessons.forEach((lesson, index) => {
     const clone = elements.lessonTemplate.content.firstElementChild.cloneNode(true);
-    clone.querySelector(".lesson-number").textContent = `Lekcja ${index + 1}`;
     clone.querySelector(".lesson-label").textContent = `${lesson.subject || "Bez przedmiotu"}${lesson.group ? ` • ${lesson.group}` : ""}`;
-    const dayLesson = getDayLessonData(entry, index);
+    clone.querySelector(".extra-lesson-fields").hidden = true;
+    clone.querySelector(".remove-extra-lesson").hidden = true;
 
-    clone.querySelectorAll("[data-field]").forEach((field) => {
-      const key = field.dataset.field;
-      if (field.type === "checkbox") {
-        field.checked = Boolean(dayLesson[key]);
-      } else {
-        field.value = dayLesson[key] ?? "";
-      }
-
-      field.addEventListener("input", () => {
+    bindLessonFields(
+      clone,
+      () => getDayLessonData(getSelectedEntry(), index),
+      (currentLesson) => {
         const currentEntry = getSelectedEntry();
-        const currentLesson = getDayLessonData(currentEntry, index);
-        currentLesson[key] = field.type === "checkbox" ? field.checked : field.value;
         currentEntry.lessonData[index] = currentLesson;
         persistEntryWithoutUiRefresh(currentEntry);
-        if (field.type !== "checkbox") {
-          scheduleCalendarOnlyRefresh();
-        }
-      });
+      },
+    );
 
-      if (field.type === "checkbox") {
-        field.addEventListener("change", () => {
-          const currentEntry = getSelectedEntry();
-          const currentLesson = getDayLessonData(currentEntry, index);
-          currentLesson[key] = field.checked;
-          currentEntry.lessonData[index] = currentLesson;
-          persistEntryWithoutUiRefresh(currentEntry);
-          renderSummary();
-          renderDays();
-        });
-      }
+    elements.lessonList.appendChild(clone);
+  });
+
+  extraLessons.forEach((lesson, index) => {
+    const clone = elements.lessonTemplate.content.firstElementChild.cloneNode(true);
+    const label = `${lesson.subject || "Zastępstwo"}${lesson.group ? ` • ${lesson.group}` : ""}`;
+    clone.querySelector(".lesson-label").textContent = label;
+    clone.classList.add("extra-lesson-item");
+
+    const extraFields = clone.querySelector(".extra-lesson-fields");
+    extraFields.hidden = false;
+    extraFields.querySelectorAll("[data-extra-field]").forEach((field) => {
+      const key = field.dataset.extraField;
+      field.value = lesson[key] ?? "";
+      field.addEventListener("input", () => {
+        const currentEntry = getSelectedEntry();
+        const extras = getExtraLessons(selectedDateKey);
+        extras[index] = {
+          ...extras[index],
+          [key]: field.value,
+        };
+        currentEntry.extraLessons = extras;
+        persistEntryWithoutUiRefresh(currentEntry);
+        clone.querySelector(".lesson-label").textContent =
+          `${extras[index].subject || "Zastępstwo"}${extras[index].group ? ` • ${extras[index].group}` : ""}`;
+        scheduleCalendarOnlyRefresh();
+      });
     });
+
+    const removeButton = clone.querySelector(".remove-extra-lesson");
+    removeButton.hidden = false;
+    removeButton.addEventListener("click", () => removeExtraLesson(index));
+
+    bindLessonFields(
+      clone,
+      () => getExtraLessons(selectedDateKey)[index],
+      (currentLesson) => {
+        const currentEntry = getSelectedEntry();
+        const extras = getExtraLessons(selectedDateKey);
+        extras[index] = {
+          ...extras[index],
+          ...currentLesson,
+          subject: extras[index].subject,
+          group: extras[index].group,
+        };
+        currentEntry.extraLessons = extras;
+        persistEntryWithoutUiRefresh(currentEntry);
+      },
+    );
 
     elements.lessonList.appendChild(clone);
   });
@@ -1199,6 +1321,9 @@ function getEntry(dateKey) {
     dayStatusLabel: saved?.dayStatusLabel ?? "",
     notes: saved?.notes ?? "",
     lessonData: saved?.lessonData ?? {},
+    extraLessons: Array.isArray(saved?.extraLessons)
+      ? saved.extraLessons.map((lesson) => normalizeExtraLesson(lesson))
+      : [],
   };
 }
 
@@ -1347,12 +1472,15 @@ function getLessonBadgeClass(label = "") {
 }
 
 function getDayLessonData(entry, index) {
-  return entry.lessonData[index] ?? {
-    topic: "",
-    notes: "",
-    completed: false,
-    canceled: false,
-    canceledReason: "",
+  const saved = entry.lessonData[index] ?? {};
+  return {
+    topic: saved.topic ?? "",
+    notes: saved.notes ?? "",
+    completed: Boolean(saved.completed),
+    canceled: Boolean(saved.canceled),
+    canceledReason: saved.canceledReason ?? "",
+    substitute: Boolean(saved.substitute),
+    substituteNote: saved.substituteNote ?? "",
   };
 }
 

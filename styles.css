@@ -455,7 +455,12 @@ h1 {
 .day-button {
   text-align: left;
   padding: 10px 12px;
-  min-height: 84px;
+  min-height: 72px;
+}
+
+.badge.lessons.badge-hours {
+  background: rgba(92, 70, 46, 0.1);
+  color: var(--text);
 }
 
 .weekday-header {
@@ -597,12 +602,28 @@ h1 {
   overflow-wrap: anywhere;
 }
 
-.detail-controls,
 .lessons-header {
   display: flex;
   justify-content: space-between;
-  gap: 16px;
+  gap: 12px;
   align-items: center;
+}
+
+.extra-lesson-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.extra-lesson-item {
+  border-color: rgba(157, 107, 143, 0.35);
+  background: rgba(248, 235, 243, 0.45);
+}
+
+.remove-extra-lesson {
+  padding: 4px 10px;
+  font-size: 0.78rem;
 }
 
 .checkbox-row {
@@ -786,7 +807,7 @@ textarea {
 
 .lesson-compact-grid {
   display: grid;
-  grid-template-columns: minmax(220px, 1.5fr) minmax(160px, 1fr) auto auto minmax(140px, 0.9fr);
+  grid-template-columns: minmax(180px, 1.4fr) minmax(140px, 1fr) auto auto auto minmax(120px, 0.85fr) minmax(140px, 0.95fr);
   gap: 10px;
   align-items: end;
 }
