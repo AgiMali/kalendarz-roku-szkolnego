@@ -759,12 +759,17 @@ function renderDays() {
       const free = isFreeDay(day.date);
       const plannedCount = free ? 0 : getScheduledLessonsForDate(day.date).length;
       const extraCount = getExtraLessons(day.dateKey).length;
-      const lessonCount = plannedCount + extraCount;
       const notesPreview = getCalendarNotePreview(day.dateKey);
       const holidayInfo = getResolvedHolidayInfo(day.date);
       const freeKind = holidayInfo?.type === "no-didactic" ? "no-didactic" : free ? "free-day" : "";
       const freeReason = free && holidayInfo
         ? escapeHtml(holidayInfo.name || holidayInfo.short || "wolne")
+        : "";
+      const hourBadge = plannedCount > 0
+        ? `<span class="badge lessons badge-hours">${plannedCount} godz.</span>`
+        : "";
+      const extraBadge = extraCount > 0
+        ? `<span class="badge lessons badge-extra">+${extraCount}</span>`
         : "";
 
       return `
@@ -776,7 +781,7 @@ function renderDays() {
           <span class="day-number">${day.date.getDate()}</span>
           <span class="day-name">${weekdayNames[day.date.getDay()]}</span>
           <div class="day-badges">
-            ${!free && lessonCount > 0 ? `<span class="badge lessons badge-hours">${lessonCount} godz.</span>` : ""}
+            ${hourBadge}${extraBadge}
           </div>
           ${freeReason ? `<div class="day-topics"><span class="day-topic free-day-reason">${freeReason}</span></div>` : ""}
           ${notesPreview.length ? `<div class="day-topics">${notesPreview.map((note) => `<span class="day-topic">${escapeHtml(note)}</span>`).join("")}</div>` : ""}
