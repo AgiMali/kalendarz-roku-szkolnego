@@ -371,11 +371,22 @@ h1 {
   min-width: 0;
 }
 
-.lesson-compact-grid input[type="text"] {
+.lesson-compact-grid input[type="text"],
+.lesson-compact-grid select {
   width: 100%;
   margin-top: 0;
   padding: 7px 9px;
   font-size: 0.86rem;
+}
+
+.topic-picker {
+  display: grid;
+  gap: 4px;
+}
+
+.topic-select {
+  min-width: 0;
+  max-width: 100%;
 }
 
 .lesson-compact-grid .checkbox-row {

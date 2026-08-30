@@ -94,7 +94,7 @@ const TOPIC_LISTS = [
     ],
   },
 ];
-const topicDatalistIds = new Map();
+const TOPIC_CUSTOM_VALUE = "__custom__";
 
 const elements = {
   schoolYearStartDate: document.querySelector("#schoolYearStartDate"),
@@ -1015,7 +1015,6 @@ function renderDayDetails() {
     clone.querySelector(".lesson-label").textContent = `${lesson.subject || "Bez przedmiotu"}${lesson.group ? ` • ${lesson.group}` : ""}`;
     clone.querySelector(".extra-lesson-fields").hidden = true;
     clone.querySelector(".remove-extra-lesson").hidden = true;
-    setupTopicField(clone, lesson.subject, lesson.group);
 
     bindLessonFields(
       clone,
@@ -1026,6 +1025,7 @@ function renderDayDetails() {
         persistEntryWithoutUiRefresh(currentEntry);
       },
     );
+    setupTopicField(clone, lesson.subject, lesson.group);
 
     elements.lessonList.appendChild(clone);
   });
@@ -1062,8 +1062,6 @@ function renderDayDetails() {
     removeButton.hidden = false;
     removeButton.addEventListener("click", () => removeExtraLesson(index));
 
-    setupTopicField(clone, lesson.subject, lesson.group);
-
     bindLessonFields(
       clone,
       () => getExtraLessons(selectedDateKey)[index],
@@ -1080,6 +1078,7 @@ function renderDayDetails() {
         persistEntryWithoutUiRefresh(currentEntry);
       },
     );
+    setupTopicField(clone, lesson.subject, lesson.group);
 
     elements.lessonList.appendChild(clone);
   });
@@ -1143,28 +1142,6 @@ function findTopicList(subject = "", group = "") {
   ) ?? null;
 }
 
-function ensureTopicDatalist(list) {
-  if (topicDatalistIds.has(list.id)) {
-    return topicDatalistIds.get(list.id);
-  }
-
-  const datalistId = `topic-datalist-${list.id}`;
-  let datalist = document.getElementById(datalistId);
-  if (!datalist) {
-    datalist = document.createElement("datalist");
-    datalist.id = datalistId;
-    list.topics.forEach((topic, index) => {
-      const option = document.createElement("option");
-      option.value = formatNumberedTopic(index + 1, topic);
-      datalist.appendChild(option);
-    });
-    document.body.appendChild(datalist);
-  }
-
-  topicDatalistIds.set(list.id, datalistId);
-  return datalistId;
-}
-
 function formatNumberedTopic(number, topic) {
   return `${number}. ${topic}`;
 }
@@ -1176,16 +1153,32 @@ function normalizeTopicText(topic = "") {
     .trim();
 }
 
+function findTopicIndex(list, topicValue) {
+  const normalized = normalizeTopicText(topicValue);
+  if (!normalized && !String(topicValue || "").trim()) {
+    return -1;
+  }
+
+  return list.topics.findIndex((topic, index) => {
+    const numbered = formatNumberedTopic(index + 1, topic);
+    return topic.trim() === normalized || numbered === String(topicValue || "").trim();
+  });
+}
+
 function setupTopicField(clone, subject, group) {
   const topicInput = clone.querySelector('[data-field="topic"]');
+  const topicSelect = clone.querySelector(".topic-select");
   const hint = clone.querySelector(".topic-field-hint");
-  if (!topicInput) {
+  if (!topicInput || !topicSelect) {
     return;
   }
 
   const list = findTopicList(subject, group);
   if (!list) {
-    topicInput.removeAttribute("list");
+    topicSelect.hidden = true;
+    topicSelect.innerHTML = "";
+    topicInput.hidden = false;
+    topicInput.classList.remove("topic-custom-input");
     topicInput.placeholder = "Temat";
     if (hint) {
       hint.hidden = true;
@@ -1194,16 +1187,87 @@ function setupTopicField(clone, subject, group) {
     return;
   }
 
-  topicInput.setAttribute("list", ensureTopicDatalist(list));
-  topicInput.placeholder = "1. … wybierz temat";
+  const groupLabel = normalizeGroupLabel(group);
+  const progress = getTopicProgressForGroup(list, groupLabel);
+  const usedTopics = getUsedCatalogTopics(list, groupLabel);
+  const currentValue = topicInput.value;
+  const matchedIndex = findTopicIndex(list, currentValue);
+  const currentTopic =
+    matchedIndex >= 0 ? list.topics[matchedIndex].trim() : "";
+  const isCustom = Boolean(currentValue.trim()) && matchedIndex < 0;
+  const remainingCount = list.topics.filter(
+    (topic) => !usedTopics.has(topic.trim()) || topic.trim() === currentTopic,
+  ).length;
+
+  topicSelect.hidden = false;
+  topicSelect.dataset.topicSubject = subject;
+  topicSelect.dataset.topicGroup = group;
+  topicSelect.innerHTML = "";
+
+  const placeholder = document.createElement("option");
+  placeholder.value = "";
+  placeholder.textContent = `Wybierz temat (${remainingCount} z ${list.topics.length})`;
+  topicSelect.appendChild(placeholder);
+
+  list.topics.forEach((topic, index) => {
+    const trimmed = topic.trim();
+    const isCurrent = trimmed === currentTopic;
+    if (usedTopics.has(trimmed) && !isCurrent) {
+      return;
+    }
+
+    const option = document.createElement("option");
+    const numbered = formatNumberedTopic(index + 1, topic);
+    option.value = numbered;
+    option.textContent = numbered;
+    topicSelect.appendChild(option);
+  });
+
+  const customOption = document.createElement("option");
+  customOption.value = TOPIC_CUSTOM_VALUE;
+  customOption.textContent = "Własny temat…";
+  topicSelect.appendChild(customOption);
+
+  topicSelect.value = isCustom
+    ? TOPIC_CUSTOM_VALUE
+    : matchedIndex >= 0
+      ? formatNumberedTopic(matchedIndex + 1, list.topics[matchedIndex])
+      : "";
+
+  topicInput.hidden = !isCustom;
+  topicInput.classList.toggle("topic-custom-input", true);
+  topicInput.placeholder = isCustom ? "Wpisz własny temat" : "Temat";
+
+  if (!topicSelect.dataset.bound) {
+    topicSelect.dataset.bound = "1";
+    topicSelect.addEventListener("change", () => {
+      if (topicSelect.value === TOPIC_CUSTOM_VALUE) {
+        topicInput.hidden = false;
+        topicInput.value = "";
+        topicInput.focus();
+        topicInput.dispatchEvent(new Event("input", { bubbles: true }));
+        return;
+      }
+
+      topicInput.hidden = true;
+      topicInput.value = topicSelect.value;
+      topicInput.dispatchEvent(new Event("input", { bubbles: true }));
+      renderTopicProgress();
+      setupTopicField(
+        clone,
+        topicSelect.dataset.topicSubject || subject,
+        topicSelect.dataset.topicGroup || group,
+      );
+    });
+  }
+
   if (hint) {
-    const progress = getTopicProgressForGroup(list, normalizeGroupLabel(group));
     hint.hidden = false;
     hint.textContent = `${progress.used}/${progress.total}`;
   }
 }
 
-function getTopicProgressForGroup(list, groupLabel) {
+function getUsedCatalogTopics(list, groupLabel) {
   const catalog = new Set(list.topics.map((topic) => topic.trim()));
   const used = new Set();
 
@@ -1248,6 +1312,11 @@ function getTopicProgressForGroup(list, groupLabel) {
     });
   });
 
+  return used;
+}
+
+function getTopicProgressForGroup(list, groupLabel) {
+  const used = getUsedCatalogTopics(list, groupLabel);
   return {
     used: used.size,
     total: list.topics.length,
