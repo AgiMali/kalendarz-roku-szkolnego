@@ -48,6 +48,53 @@ const trackedWeekdays = [
 const DEFAULT_START_DATE = "2026-09-01";
 const DEFAULT_END_DATE = "2027-06-25";
 const DEFAULT_LESSON_SLOTS = 8;
+const TOPIC_LISTS = [
+  {
+    id: "zr-2",
+    subject: "ZR",
+    groups: ["2a", "2b"],
+    topics: [
+      "W pracowni komputerowej – zapoznanie z regulaminem pracowni.",
+      "Wchodzimy do komputerowego świata – logowanie, pulpit i ikony.",
+      "W pracowni małego grafika – poznajemy program Paint.",
+      "Myszka w akcji – tropem kropek.",
+      "Przybornik i jego tajemnice.",
+      "Zgadnij mój rysunek - AutoDraw",
+      "Paleta kolorów – kolorujemy według wzoru (selektor kolorów).",
+      "Tajemnice palety kolorów – kolory niestandardowe.",
+      "Gdzie zapisał się mój rysunek? - foldery i pliki.",
+      "Falująca flaga – tworzymy obrazek z linii i krzywej.",
+      "Ćwiczymy sprawność i refleks – wyścigi samochodowe.",
+      "Fabryka robotów – tworzymy postać z figur geometrycznych.",
+      "Fabryka robotów – otwieramy i modyfikujemy zapisane prace.",
+      "Świąteczne kodowanie – dyktando graficzne",
+      "Projektujemy świąteczną bombkę w Paint.",
+      "Choinka pełna ozdób – kopiujemy i powielamy elementy.",
+      "Zaczarowany świat kolorów - poznajemy Tux Paint.",
+      "Mroźne wzory – ozdabiamy zimowe okno.",
+      "Mali konstruktorzy – budujemy własne modele.",
+      "Bezpieczny Internet – DBI 2027",
+      "DBI – plakat w Paint",
+      "Interland – uczymy się bezpiecznie.",
+      "Poznajemy Office.com – logujemy się do chmury.",
+      "Pierwsze kroki w Word Online – piszemy i poprawiamy tekst.",
+      "Zaproszenie na… - czcionka i jej tajemnice.",
+      "Poznajemy ScratchJr – pierwsze kroki.",
+      "Ożywiamy bohatera – programujemy ruch.",
+      "Tworzymy animowaną historyjkę.",
+      "Projektujemy okładkę ulubionej książki.",
+      "Kolorowe piksele – tworzymy obrazek.",
+      "Kolorowy zawrót głowy – obracanie i odbijanie.",
+      "Malujemy piaskiem – tworzymy własne kompozycje.",
+      "W krainie Tux Paint – tworzymy własny obraz.",
+      "Przepis na lody – strona książki kucharskiej.",
+      "Noc w wielkim mieście – kopiowanie i wklejanie elementów.",
+      "Projektujemy wakacyjną pocztówkę.",
+      "Bezpieczne wakacje – mądrze korzystamy z technologi.",
+    ],
+  },
+];
+const topicDatalistIds = new Map();
 
 const elements = {
   schoolYearStartDate: document.querySelector("#schoolYearStartDate"),
@@ -72,6 +119,7 @@ const elements = {
   teachingDaysRemaining: document.querySelector("#teachingDaysRemaining"),
   weekdayStats: document.querySelector("#weekdayStats"),
   subjectStats: document.querySelector("#subjectStats"),
+  topicProgress: document.querySelector("#topicProgress"),
   todayBadge: document.querySelector("#todayBadge"),
   jumpToToday: document.querySelector("#jumpToToday"),
   exportData: document.querySelector("#exportData"),
@@ -903,6 +951,9 @@ function bindLessonFields(clone, getLesson, saveLesson) {
       if (field.type !== "checkbox") {
         scheduleCalendarOnlyRefresh();
       }
+      if (key === "topic") {
+        renderTopicProgress();
+      }
     });
 
     if (field.type === "checkbox") {
@@ -964,6 +1015,7 @@ function renderDayDetails() {
     clone.querySelector(".lesson-label").textContent = `${lesson.subject || "Bez przedmiotu"}${lesson.group ? ` • ${lesson.group}` : ""}`;
     clone.querySelector(".extra-lesson-fields").hidden = true;
     clone.querySelector(".remove-extra-lesson").hidden = true;
+    setupTopicField(clone, lesson.subject, lesson.group);
 
     bindLessonFields(
       clone,
@@ -1000,6 +1052,8 @@ function renderDayDetails() {
         persistEntryWithoutUiRefresh(currentEntry);
         clone.querySelector(".lesson-label").textContent =
           `${extras[index].subject || "Zastępstwo"}${extras[index].group ? ` • ${extras[index].group}` : ""}`;
+        setupTopicField(clone, extras[index].subject, extras[index].group);
+        renderTopicProgress();
         scheduleCalendarOnlyRefresh();
       });
     });
@@ -1007,6 +1061,8 @@ function renderDayDetails() {
     const removeButton = clone.querySelector(".remove-extra-lesson");
     removeButton.hidden = false;
     removeButton.addEventListener("click", () => removeExtraLesson(index));
+
+    setupTopicField(clone, lesson.subject, lesson.group);
 
     bindLessonFields(
       clone,
@@ -1073,6 +1129,147 @@ function renderSummary() {
     `
     : '<p class="subject-empty">Wpisz plan, a tutaj pokażą się godziny dla każdej klasy.</p>';
   elements.todayBadge.textContent = `Liczenie od: ${formatLongDate(startDate)}`;
+  renderTopicProgress();
+}
+
+function findTopicList(subject = "", group = "") {
+  const subjectLabel = getSubjectShortLabel(subject);
+  const groupLabel = normalizeGroupLabel(group);
+
+  return TOPIC_LISTS.find(
+    (list) =>
+      list.subject === subjectLabel &&
+      list.groups.some((item) => normalizeGroupLabel(item) === groupLabel),
+  ) ?? null;
+}
+
+function ensureTopicDatalist(list) {
+  if (topicDatalistIds.has(list.id)) {
+    return topicDatalistIds.get(list.id);
+  }
+
+  const datalistId = `topic-datalist-${list.id}`;
+  let datalist = document.getElementById(datalistId);
+  if (!datalist) {
+    datalist = document.createElement("datalist");
+    datalist.id = datalistId;
+    list.topics.forEach((topic) => {
+      const option = document.createElement("option");
+      option.value = topic;
+      datalist.appendChild(option);
+    });
+    document.body.appendChild(datalist);
+  }
+
+  topicDatalistIds.set(list.id, datalistId);
+  return datalistId;
+}
+
+function setupTopicField(clone, subject, group) {
+  const topicInput = clone.querySelector('[data-field="topic"]');
+  const hint = clone.querySelector(".topic-field-hint");
+  if (!topicInput) {
+    return;
+  }
+
+  const list = findTopicList(subject, group);
+  if (!list) {
+    topicInput.removeAttribute("list");
+    topicInput.placeholder = "Wpisz temat";
+    if (hint) {
+      hint.hidden = true;
+      hint.textContent = "";
+    }
+    return;
+  }
+
+  topicInput.setAttribute("list", ensureTopicDatalist(list));
+  topicInput.placeholder = "Wybierz z listy lub wpisz";
+  if (hint) {
+    const progress = getTopicProgressForGroup(list, normalizeGroupLabel(group));
+    hint.hidden = false;
+    hint.textContent = `Tematy ZR • ${normalizeGroupLabel(group)}: ${progress.used}/${progress.total}`;
+  }
+}
+
+function getTopicProgressForGroup(list, groupLabel) {
+  const catalog = new Set(list.topics.map((topic) => topic.trim()));
+  const used = new Set();
+
+  Object.entries(state.entries).forEach(([dateKey, entry]) => {
+    const date = parseDateKey(dateKey);
+    const scheduled = getScheduledLessonsForDate(date);
+
+    scheduled.forEach((lesson, index) => {
+      if (getSubjectShortLabel(lesson.subject) !== list.subject) {
+        return;
+      }
+      if (normalizeGroupLabel(lesson.group) !== groupLabel) {
+        return;
+      }
+
+      const dayLesson = getDayLessonData(entry, index);
+      if (dayLesson.canceled) {
+        return;
+      }
+
+      const topic = String(dayLesson.topic || "").trim();
+      if (catalog.has(topic)) {
+        used.add(topic);
+      }
+    });
+
+    getExtraLessons(dateKey).forEach((lesson) => {
+      if (getSubjectShortLabel(lesson.subject) !== list.subject) {
+        return;
+      }
+      if (normalizeGroupLabel(lesson.group) !== groupLabel) {
+        return;
+      }
+      if (lesson.canceled) {
+        return;
+      }
+
+      const topic = String(lesson.topic || "").trim();
+      if (catalog.has(topic)) {
+        used.add(topic);
+      }
+    });
+  });
+
+  return {
+    used: used.size,
+    total: list.topics.length,
+  };
+}
+
+function renderTopicProgress() {
+  if (!elements.topicProgress) {
+    return;
+  }
+
+  const items = [];
+  TOPIC_LISTS.forEach((list) => {
+    list.groups.forEach((group) => {
+      const groupLabel = normalizeGroupLabel(group);
+      const progress = getTopicProgressForGroup(list, groupLabel);
+      items.push({
+        label: `${groupLabel} • ${list.subject}`,
+        used: progress.used,
+        total: progress.total,
+        subjectLabel: list.subject,
+      });
+    });
+  });
+
+  elements.topicProgress.innerHTML = items.length
+    ? items
+        .map(
+          (item) =>
+            `<div class="topic-progress-pill ${getLessonBadgeClass(item.subjectLabel)}"><strong>${item.used}/${item.total}</strong><span>${escapeHtml(item.label)}</span></div>`,
+        )
+        .join("")
+    : '<p class="subject-empty">Brak list tematów.</p>';
 }
 
 function calculateDaysRemaining(startDate, endDate) {

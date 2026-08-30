@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Kalendarz roku szkolnego</title>
-  <link rel="stylesheet" href="styles.css?v=20260830-5">
+  <link rel="stylesheet" href="styles.css?v=20260830-6">
 </head>
 <body>
   <div class="app-shell">
@@ -59,6 +59,10 @@
           <div class="subject-summary">
             <h3>Pozostałe godziny klas</h3>
             <div id="subjectStats" class="subject-stats"></div>
+          </div>
+          <div class="topic-summary">
+            <h3>Postęp tematów</h3>
+            <div id="topicProgress" class="topic-progress"></div>
           </div>
           <p id="todayBadge" class="today-badge"></p>
         </div>
@@ -202,9 +206,10 @@
         </label>
       </div>
       <div class="lesson-compact-grid">
-        <label class="full-width">
+        <label class="full-width topic-field">
           Temat
-          <input data-field="topic" type="text" placeholder="Wpisz temat">
+          <input data-field="topic" type="text" placeholder="Wpisz temat" autocomplete="off">
+          <span class="topic-field-hint" hidden></span>
         </label>
         <label class="full-width">
           Notatka
@@ -230,6 +235,6 @@
     </article>
   </template>
 
-  <script type="module" src="app.js?v=20260830-5"></script>
+  <script type="module" src="app.js?v=20260830-6"></script>
 </body>
 </html>

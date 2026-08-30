@@ -287,6 +287,46 @@ h1 {
   border-top: 1px solid var(--border);
 }
 
+.topic-summary {
+  margin-top: 18px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+}
+
+.topic-progress {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.topic-progress-pill {
+  padding: 12px 10px;
+  border-radius: 14px;
+  border: 1px solid transparent;
+  text-align: center;
+}
+
+.topic-progress-pill strong {
+  display: block;
+  font-size: 1.15rem;
+  line-height: 1.1;
+}
+
+.topic-progress-pill span {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.topic-field-hint {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
 .subject-stats {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
