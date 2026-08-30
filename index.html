@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Kalendarz roku szkolnego</title>
-  <link rel="stylesheet" href="styles.css?v=20260830-6">
+  <link rel="stylesheet" href="styles.css?v=20260830-7">
 </head>
 <body>
   <div class="app-shell">
@@ -191,10 +191,6 @@
 
   <template id="lessonTemplate">
     <article class="lesson-item">
-      <div class="lesson-topbar">
-        <strong class="lesson-label"></strong>
-        <button class="ghost-button remove-extra-lesson" type="button" hidden>Usuń</button>
-      </div>
       <div class="extra-lesson-fields" hidden>
         <label>
           Klasa
@@ -206,35 +202,39 @@
         </label>
       </div>
       <div class="lesson-compact-grid">
-        <label class="full-width topic-field">
-          Temat
-          <input data-field="topic" type="text" placeholder="Wpisz temat" autocomplete="off">
+        <div class="lesson-inline-meta">
+          <strong class="lesson-label"></strong>
           <span class="topic-field-hint" hidden></span>
+          <button class="ghost-button remove-extra-lesson" type="button" hidden>Usuń</button>
+        </div>
+        <label class="topic-field">
+          <span class="field-mini-label">Temat</span>
+          <input data-field="topic" type="text" placeholder="Nr lub temat" autocomplete="off">
         </label>
-        <label class="full-width">
-          Notatka
-          <input data-field="notes" type="text" placeholder="Krótka notatka">
+        <label>
+          <span class="field-mini-label">Notatka</span>
+          <input data-field="notes" type="text" placeholder="Notatka">
         </label>
-        <label class="checkbox-row">
+        <label class="checkbox-row" title="Zrealizowana">
           <input data-field="completed" type="checkbox">
-          <span>Zrealizowana</span>
+          <span>OK</span>
         </label>
-        <label class="checkbox-row">
+        <label class="checkbox-row" title="Nie odbyła się">
           <input data-field="canceled" type="checkbox">
-          <span>Nie odbyła się</span>
+          <span>Nie</span>
         </label>
-        <label class="checkbox-row">
+        <label class="checkbox-row" title="Zastępstwo">
           <input data-field="substitute" type="checkbox">
-          <span>Zastępstwo</span>
+          <span>Zast.</span>
         </label>
-        <label class="full-width">
-          Powód
-          <input data-field="canceledReason" type="text" placeholder="Np. akademia">
+        <label>
+          <span class="field-mini-label">Powód</span>
+          <input data-field="canceledReason" type="text" placeholder="Powód">
         </label>
       </div>
     </article>
   </template>
 
-  <script type="module" src="app.js?v=20260830-6"></script>
+  <script type="module" src="app.js?v=20260830-7"></script>
 </body>
 </html>

@@ -320,11 +320,76 @@ h1 {
 }
 
 .topic-field-hint {
-  display: block;
-  margin-top: 4px;
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: rgba(92, 70, 46, 0.08);
   color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.field-mini-label {
+  display: block;
+  margin-bottom: 2px;
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.lesson-inline-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 108px;
+}
+
+.lesson-inline-meta .remove-extra-lesson {
+  padding: 4px 8px;
   font-size: 0.75rem;
-  font-weight: 600;
+}
+
+.lesson-item {
+  background: var(--surface-strong);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 8px 10px;
+}
+
+.lesson-compact-grid {
+  display: grid;
+  grid-template-columns: minmax(110px, 0.7fr) minmax(220px, 2.2fr) minmax(110px, 1fr) auto auto auto minmax(100px, 0.8fr);
+  gap: 8px;
+  align-items: end;
+}
+
+.lesson-compact-grid > label {
+  min-width: 0;
+}
+
+.lesson-compact-grid input[type="text"] {
+  width: 100%;
+  margin-top: 0;
+  padding: 7px 9px;
+  font-size: 0.86rem;
+}
+
+.lesson-compact-grid .checkbox-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 7px;
+  white-space: nowrap;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.compact-lessons {
+  overflow-x: auto;
 }
 
 .subject-stats {
@@ -724,13 +789,6 @@ textarea {
   color: var(--text);
 }
 
-.lesson-item {
-  background: var(--surface-strong);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  padding: 12px 14px;
-}
-
 .detail-card {
   padding: 12px 14px;
   background: var(--surface-strong);
@@ -851,18 +909,6 @@ textarea {
   margin-bottom: 0;
 }
 
-.lesson-compact-grid {
-  display: grid;
-  grid-template-columns: minmax(180px, 1.4fr) minmax(140px, 1fr) auto auto auto minmax(140px, 0.95fr);
-  gap: 10px;
-  align-items: end;
-}
-
-.lesson-compact-grid input {
-  margin-top: 6px;
-  padding: 9px 10px;
-}
-
 .weekly-plan {
   overflow-x: auto;
 }
@@ -870,6 +916,8 @@ textarea {
 .lesson-label {
   color: var(--lesson-green);
   font-weight: 700;
+  font-size: 0.86rem;
+  white-space: nowrap;
 }
 
 .weekly-plan-grid {
@@ -977,14 +1025,6 @@ textarea {
   color: var(--muted);
 }
 
-.lesson-topbar {
-  display: flex;
-  justify-content: space-between;
-  gap: 16px;
-  align-items: center;
-  margin-bottom: 8px;
-}
-
 .lesson-fields {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1024,7 +1064,8 @@ textarea {
   }
 
   .lesson-compact-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(100px, 0.7fr) minmax(200px, 2fr) minmax(100px, 1fr) auto auto auto minmax(90px, 0.8fr);
+    min-width: 760px;
   }
 
   .day-meta-row {

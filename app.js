@@ -1153,9 +1153,9 @@ function ensureTopicDatalist(list) {
   if (!datalist) {
     datalist = document.createElement("datalist");
     datalist.id = datalistId;
-    list.topics.forEach((topic) => {
+    list.topics.forEach((topic, index) => {
       const option = document.createElement("option");
-      option.value = topic;
+      option.value = formatNumberedTopic(index + 1, topic);
       datalist.appendChild(option);
     });
     document.body.appendChild(datalist);
@@ -1163,6 +1163,17 @@ function ensureTopicDatalist(list) {
 
   topicDatalistIds.set(list.id, datalistId);
   return datalistId;
+}
+
+function formatNumberedTopic(number, topic) {
+  return `${number}. ${topic}`;
+}
+
+function normalizeTopicText(topic = "") {
+  return String(topic)
+    .trim()
+    .replace(/^\d{1,3}\.\s*/, "")
+    .trim();
 }
 
 function setupTopicField(clone, subject, group) {
@@ -1175,7 +1186,7 @@ function setupTopicField(clone, subject, group) {
   const list = findTopicList(subject, group);
   if (!list) {
     topicInput.removeAttribute("list");
-    topicInput.placeholder = "Wpisz temat";
+    topicInput.placeholder = "Temat";
     if (hint) {
       hint.hidden = true;
       hint.textContent = "";
@@ -1184,11 +1195,11 @@ function setupTopicField(clone, subject, group) {
   }
 
   topicInput.setAttribute("list", ensureTopicDatalist(list));
-  topicInput.placeholder = "Wybierz z listy lub wpisz";
+  topicInput.placeholder = "1. … wybierz temat";
   if (hint) {
     const progress = getTopicProgressForGroup(list, normalizeGroupLabel(group));
     hint.hidden = false;
-    hint.textContent = `Tematy ZR • ${normalizeGroupLabel(group)}: ${progress.used}/${progress.total}`;
+    hint.textContent = `${progress.used}/${progress.total}`;
   }
 }
 
@@ -1213,7 +1224,7 @@ function getTopicProgressForGroup(list, groupLabel) {
         return;
       }
 
-      const topic = String(dayLesson.topic || "").trim();
+      const topic = normalizeTopicText(dayLesson.topic);
       if (catalog.has(topic)) {
         used.add(topic);
       }
@@ -1230,7 +1241,7 @@ function getTopicProgressForGroup(list, groupLabel) {
         return;
       }
 
-      const topic = String(lesson.topic || "").trim();
+      const topic = normalizeTopicText(lesson.topic);
       if (catalog.has(topic)) {
         used.add(topic);
       }
