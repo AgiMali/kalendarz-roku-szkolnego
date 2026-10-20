@@ -93,6 +93,49 @@ const TOPIC_LISTS = [
       "Bezpieczne wakacje – mądrze korzystamy z technologi.",
     ],
   },
+  {
+    id: "tech-5",
+    subject: "TECH",
+    groups: ["5a", "5b"],
+    topics: [
+      "Zapoznanie z wymaganiami edukacyjnymi z techniki i regulaminem pracowni technicznej",
+      "Niezwykły wynalazek – papier",
+      "Papier pod lupą – badamy próbki papieru",
+      "Formaty papieru i odczytywanie wymiarów",
+      "Właściwości papieru i jego zastosowanie",
+      "Przyrządy i narzędzia do prac z papierem",
+      "Majsterka - ożywiamy papier.",
+      "Majsterka - ożywiamy papier.",
+      "Majsterka - ożywiamy papier.",
+      "Majsterka - gra pudełkowa – od pomysłu do rozgrywki.",
+      "Majsterka - gra pudełkowa – od pomysłu do rozgrywki.",
+      "Majsterka - gra pudełkowa – od pomysłu do rozgrywki.",
+      "Majsterka - gra pudełkowa – od pomysłu do rozgrywki.",
+      "Włókna i ich pochodzenie.",
+      "Wyroby włókiennicze - tkanina.",
+      "Sploty z papieru – model tkaniny.",
+      "Sploty z papieru – model tkaniny.",
+      "Wyroby włókiennicze - dzianina.",
+      "Majsterka - Krasnal z włóczki/sznurka.",
+      "Majsterka - Krasnal z włóczki/sznurka.",
+      "Konserwacja wyrobów włókienniczych – metki i piktogramy",
+      "Droga do Mistrza Ubrań – rozgrywki powtórzeniowe",
+      "Maskotka z filcu – projekt i wykrój",
+      "Maskotka z filcu – przygotowanie elementów i przyszywanie guzików",
+      "Maskotka z filcu – szycie ręczne/maszynowe.",
+      "Maskotka z filcu – wypychanie, wykończenie i prezentacja.",
+      "Escape room: Bela materiału.",
+      "W świecie metali – właściwości i zastosowanie",
+      "Drut jako materiał konstrukcyjny",
+      "Majsterka z drutu – ćwiczenia gięcia i skręcania",
+      "Majsterka z drutu – ćwiczenia gięcia i skręcania",
+      "Drzewko szczęścia z drutu – projekt i przygotowanie elementów",
+      "Drzewko szczęścia z drutu – wykonanie pnia i gałęzi",
+      "Drzewko szczęścia z drutu – mocowanie ozdób i formowanie korony",
+      "Drzewko szczęścia z drutu – wykończenie i prezentacja pracy",
+      "Escape room: Tajemnica metalowej skrzynki",
+    ],
+  },
 ];
 const TOPIC_CUSTOM_VALUE = "__custom__";
 
@@ -1154,15 +1197,20 @@ function normalizeTopicText(topic = "") {
 }
 
 function findTopicIndex(list, topicValue) {
-  const normalized = normalizeTopicText(topicValue);
-  if (!normalized && !String(topicValue || "").trim()) {
+  const raw = String(topicValue || "").trim();
+  if (!raw) {
     return -1;
   }
 
-  return list.topics.findIndex((topic, index) => {
-    const numbered = formatNumberedTopic(index + 1, topic);
-    return topic.trim() === normalized || numbered === String(topicValue || "").trim();
-  });
+  const byNumber = list.topics.findIndex(
+    (topic, index) => formatNumberedTopic(index + 1, topic) === raw,
+  );
+  if (byNumber >= 0) {
+    return byNumber;
+  }
+
+  const normalized = normalizeTopicText(raw);
+  return list.topics.findIndex((topic) => topic.trim() === normalized);
 }
 
 function setupTopicField(clone, subject, group) {
@@ -1189,14 +1237,12 @@ function setupTopicField(clone, subject, group) {
 
   const groupLabel = normalizeGroupLabel(group);
   const progress = getTopicProgressForGroup(list, groupLabel);
-  const usedTopics = getUsedCatalogTopics(list, groupLabel);
+  const usedIndexes = getUsedCatalogTopicIndexes(list, groupLabel);
   const currentValue = topicInput.value;
   const matchedIndex = findTopicIndex(list, currentValue);
-  const currentTopic =
-    matchedIndex >= 0 ? list.topics[matchedIndex].trim() : "";
   const isCustom = Boolean(currentValue.trim()) && matchedIndex < 0;
   const remainingCount = list.topics.filter(
-    (topic) => !usedTopics.has(topic.trim()) || topic.trim() === currentTopic,
+    (_, index) => !usedIndexes.has(index) || index === matchedIndex,
   ).length;
 
   topicSelect.hidden = false;
@@ -1210,9 +1256,7 @@ function setupTopicField(clone, subject, group) {
   topicSelect.appendChild(placeholder);
 
   list.topics.forEach((topic, index) => {
-    const trimmed = topic.trim();
-    const isCurrent = trimmed === currentTopic;
-    if (usedTopics.has(trimmed) && !isCurrent) {
+    if (usedIndexes.has(index) && index !== matchedIndex) {
       return;
     }
 
@@ -1267,8 +1311,7 @@ function setupTopicField(clone, subject, group) {
   }
 }
 
-function getUsedCatalogTopics(list, groupLabel) {
-  const catalog = new Set(list.topics.map((topic) => topic.trim()));
+function getUsedCatalogTopicIndexes(list, groupLabel) {
   const used = new Set();
 
   Object.entries(state.entries).forEach(([dateKey, entry]) => {
@@ -1288,9 +1331,9 @@ function getUsedCatalogTopics(list, groupLabel) {
         return;
       }
 
-      const topic = normalizeTopicText(dayLesson.topic);
-      if (catalog.has(topic)) {
-        used.add(topic);
+      const topicIndex = findTopicIndex(list, dayLesson.topic);
+      if (topicIndex >= 0) {
+        used.add(topicIndex);
       }
     });
 
@@ -1305,9 +1348,9 @@ function getUsedCatalogTopics(list, groupLabel) {
         return;
       }
 
-      const topic = normalizeTopicText(lesson.topic);
-      if (catalog.has(topic)) {
-        used.add(topic);
+      const topicIndex = findTopicIndex(list, lesson.topic);
+      if (topicIndex >= 0) {
+        used.add(topicIndex);
       }
     });
   });
@@ -1316,7 +1359,7 @@ function getUsedCatalogTopics(list, groupLabel) {
 }
 
 function getTopicProgressForGroup(list, groupLabel) {
-  const used = getUsedCatalogTopics(list, groupLabel);
+  const used = getUsedCatalogTopicIndexes(list, groupLabel);
   return {
     used: used.size,
     total: list.topics.length,
