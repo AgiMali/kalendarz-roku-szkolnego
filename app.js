@@ -881,6 +881,19 @@ function clearWeeklyPlan() {
   }
 }
 
+function isDayRealized(date, dateKey) {
+  const lessons = getScheduledLessonsForDate(date);
+  if (!lessons.length) {
+    return false;
+  }
+
+  const entry = getEntry(dateKey);
+  return lessons.every((_, index) => {
+    const dayLesson = getDayLessonData(entry, index);
+    return dayLesson.completed || dayLesson.canceled;
+  });
+}
+
 function renderDays() {
   const monthDate = getMonthDateByIndex(selectedMonthIndex);
   const year = monthDate.getFullYear();
@@ -912,10 +925,11 @@ function renderDays() {
       const extraBadge = extraCount > 0
         ? `<span class="badge lessons badge-extra">+${extraCount}</span>`
         : "";
+      const realized = !free && isDayRealized(day.date, day.dateKey);
 
       return `
         <button
-          class="day-button ${selectedDateKey === day.dateKey ? "active" : ""} ${freeKind}"
+          class="day-button ${selectedDateKey === day.dateKey ? "active" : ""} ${freeKind} ${realized ? "realized" : ""}"
           type="button"
           data-date-key="${day.dateKey}"
         >
