@@ -281,16 +281,61 @@ h1 {
   font-size: 0.84rem;
 }
 
-.subject-summary {
+.subject-summary,
+.topic-summary {
   margin-top: 18px;
   padding-top: 18px;
   border-top: 1px solid var(--border);
 }
 
-.topic-summary {
-  margin-top: 18px;
-  padding-top: 18px;
-  border-top: 1px solid var(--border);
+.collapsible-summary > summary {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+
+.collapsible-summary > summary::-webkit-details-marker {
+  display: none;
+}
+
+.collapsible-summary > summary::after {
+  content: "▾";
+  flex-shrink: 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+  transform: rotate(-90deg);
+  transition: transform 0.15s ease;
+}
+
+.collapsible-summary[open] > summary::after {
+  transform: rotate(0deg);
+}
+
+.collapse-title {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.collapse-meta {
+  flex: 1;
+  min-width: 0;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-align: right;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.collapsible-summary .subject-stats,
+.collapsible-summary .topic-progress {
+  margin-top: 12px;
 }
 
 .topic-progress {

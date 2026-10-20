@@ -162,7 +162,11 @@ const elements = {
   teachingDaysRemaining: document.querySelector("#teachingDaysRemaining"),
   weekdayStats: document.querySelector("#weekdayStats"),
   subjectStats: document.querySelector("#subjectStats"),
+  subjectStatsMeta: document.querySelector("#subjectStatsMeta"),
+  subjectSummary: document.querySelector("#subjectSummary"),
   topicProgress: document.querySelector("#topicProgress"),
+  topicProgressMeta: document.querySelector("#topicProgressMeta"),
+  topicSummary: document.querySelector("#topicSummary"),
   todayBadge: document.querySelector("#todayBadge"),
   jumpToToday: document.querySelector("#jumpToToday"),
   exportData: document.querySelector("#exportData"),
@@ -313,6 +317,8 @@ function bindEvents() {
   elements.addSubstituteLesson?.addEventListener("click", addSubstituteLesson);
 
   elements.jumpToToday.addEventListener("click", goToTodayIfInYear);
+  bindCollapsibleSummary(elements.subjectSummary, "school-year-subject-summary-open");
+  bindCollapsibleSummary(elements.topicSummary, "school-year-topic-summary-open");
 
   if (elements.exportData) {
     elements.exportData.addEventListener("click", exportPlannerData);
@@ -1170,8 +1176,29 @@ function renderSummary() {
       </div>
     `
     : '<p class="subject-empty">Wpisz plan, a tutaj pokażą się godziny dla każdej klasy.</p>';
+
+  if (elements.subjectStatsMeta) {
+    if (!classCounts.length) {
+      elements.subjectStatsMeta.textContent = "";
+    } else {
+      const totalHours = classCounts.reduce((sum, item) => sum + item.count, 0);
+      elements.subjectStatsMeta.textContent = `${classCounts.length} klas · ${totalHours} godz.`;
+    }
+  }
+
   elements.todayBadge.textContent = `Liczenie od: ${formatLongDate(startDate)}`;
   renderTopicProgress();
+}
+
+function bindCollapsibleSummary(details, storageKey) {
+  if (!details || !storageKey) {
+    return;
+  }
+
+  details.open = localStorage.getItem(storageKey) === "1";
+  details.addEventListener("toggle", () => {
+    localStorage.setItem(storageKey, details.open ? "1" : "0");
+  });
 }
 
 function findTopicList(subject = "", group = "") {
@@ -1393,6 +1420,12 @@ function renderTopicProgress() {
         )
         .join("")
     : '<p class="subject-empty">Brak list tematów.</p>';
+
+  if (elements.topicProgressMeta) {
+    elements.topicProgressMeta.textContent = items.length
+      ? items.map((item) => `${item.label} ${item.used}/${item.total}`).join(" · ")
+      : "";
+  }
 }
 
 function calculateDaysRemaining(startDate, endDate) {

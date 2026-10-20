@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Kalendarz roku szkolnego</title>
-  <link rel="stylesheet" href="styles.css?v=20261020-1">
+  <link rel="stylesheet" href="styles.css?v=20261020-2">
 </head>
 <body>
   <div class="app-shell">
@@ -56,14 +56,20 @@
             <h3>Pozostałe dni tygodnia</h3>
             <div id="weekdayStats" class="weekday-stats"></div>
           </div>
-          <div class="subject-summary">
-            <h3>Pozostałe godziny klas</h3>
+          <details class="subject-summary collapsible-summary" id="subjectSummary">
+            <summary>
+              <span class="collapse-title">Pozostałe godziny klas</span>
+              <span id="subjectStatsMeta" class="collapse-meta"></span>
+            </summary>
             <div id="subjectStats" class="subject-stats"></div>
-          </div>
-          <div class="topic-summary">
-            <h3>Postęp tematów</h3>
+          </details>
+          <details class="topic-summary collapsible-summary" id="topicSummary">
+            <summary>
+              <span class="collapse-title">Postęp tematów</span>
+              <span id="topicProgressMeta" class="collapse-meta"></span>
+            </summary>
             <div id="topicProgress" class="topic-progress"></div>
-          </div>
+          </details>
           <p id="todayBadge" class="today-badge"></p>
         </div>
 
@@ -238,6 +244,6 @@
     </article>
   </template>
 
-  <script type="module" src="app.js?v=20261020-1"></script>
+  <script type="module" src="app.js?v=20261020-2"></script>
 </body>
 </html>
