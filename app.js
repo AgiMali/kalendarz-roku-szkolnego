@@ -160,6 +160,7 @@ const elements = {
   weeklyPlan: document.querySelector("#weeklyPlan"),
   daysRemaining: document.querySelector("#daysRemaining"),
   teachingDaysRemaining: document.querySelector("#teachingDaysRemaining"),
+  hoursRemaining: document.querySelector("#hoursRemaining"),
   weekdayStats: document.querySelector("#weekdayStats"),
   subjectStats: document.querySelector("#subjectStats"),
   subjectStatsMeta: document.querySelector("#subjectStatsMeta"),
@@ -1139,8 +1140,13 @@ function renderSummary() {
   const weekdayCounts = calculateWeekdayCounts(startDate, endDate);
   const classCounts = calculateClassLessonCounts(startDate, endDate);
 
+  const totalHours = classCounts.reduce((sum, item) => sum + item.count, 0);
+
   elements.daysRemaining.textContent = String(calculateDaysRemaining(startDate, endDate));
   elements.teachingDaysRemaining.textContent = String(calculateTeachingDaysRemaining(startDate, endDate));
+  if (elements.hoursRemaining) {
+    elements.hoursRemaining.textContent = String(totalHours);
+  }
   elements.weekdayStats.innerHTML = trackedWeekdays
     .map(({ day, short }) => `<div class="weekday-pill"><strong>${weekdayCounts[day]}</strong><span>${short}</span></div>`)
     .join("");
@@ -1178,12 +1184,9 @@ function renderSummary() {
     : '<p class="subject-empty">Wpisz plan, a tutaj pokażą się godziny dla każdej klasy.</p>';
 
   if (elements.subjectStatsMeta) {
-    if (!classCounts.length) {
-      elements.subjectStatsMeta.textContent = "";
-    } else {
-      const totalHours = classCounts.reduce((sum, item) => sum + item.count, 0);
-      elements.subjectStatsMeta.textContent = `${classCounts.length} klas · ${totalHours} godz.`;
-    }
+    elements.subjectStatsMeta.textContent = classCounts.length
+      ? `${classCounts.length} klas — szczegóły`
+      : "";
   }
 
   elements.todayBadge.textContent = `Liczenie od: ${formatLongDate(startDate)}`;
@@ -1422,9 +1425,13 @@ function renderTopicProgress() {
     : '<p class="subject-empty">Brak list tematów.</p>';
 
   if (elements.topicProgressMeta) {
-    elements.topicProgressMeta.textContent = items.length
-      ? items.map((item) => `${item.label} ${item.used}/${item.total}`).join(" · ")
-      : "";
+    if (!items.length) {
+      elements.topicProgressMeta.textContent = "";
+    } else {
+      const used = items.reduce((sum, item) => sum + item.used, 0);
+      const total = items.reduce((sum, item) => sum + item.total, 0);
+      elements.topicProgressMeta.textContent = `${items.length} list · ${used}/${total}`;
+    }
   }
 }
 

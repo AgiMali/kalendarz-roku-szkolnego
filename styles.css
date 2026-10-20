@@ -189,8 +189,9 @@ h1 {
 
 .layout {
   display: grid;
-  grid-template-columns: 320px minmax(0, 1fr);
+  grid-template-columns: minmax(0, 320px) minmax(0, 1fr);
   gap: 24px;
+  align-items: start;
 }
 
 .sidebar,
@@ -198,6 +199,11 @@ h1 {
   display: grid;
   gap: 24px;
   align-content: start;
+  min-width: 0;
+}
+
+.sidebar .card {
+  overflow: hidden;
 }
 
 .card {
@@ -210,9 +216,12 @@ h1 {
 
 .stats {
   display: grid;
-  grid-template-columns: repeat(2, minmax(130px, 160px));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
-  justify-content: center;
+}
+
+.stats .stat-hours {
+  grid-column: 1 / -1;
 }
 
 .stats article {
@@ -289,10 +298,11 @@ h1 {
 }
 
 .collapsible-summary > summary {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 10px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: 10px;
+  row-gap: 4px;
+  align-items: center;
   cursor: pointer;
   list-style: none;
   user-select: none;
@@ -304,7 +314,8 @@ h1 {
 
 .collapsible-summary > summary::after {
   content: "▾";
-  flex-shrink: 0;
+  grid-column: 2;
+  grid-row: 1 / span 2;
   color: var(--muted);
   font-size: 0.85rem;
   transform: rotate(-90deg);
@@ -316,21 +327,20 @@ h1 {
 }
 
 .collapse-title {
+  grid-column: 1;
   font-size: 0.95rem;
   font-weight: 800;
   color: var(--text);
 }
 
 .collapse-meta {
-  flex: 1;
+  grid-column: 1;
   min-width: 0;
   color: var(--muted);
   font-size: 0.75rem;
   font-weight: 600;
-  text-align: right;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
 }
 
 .collapsible-summary .subject-stats,
