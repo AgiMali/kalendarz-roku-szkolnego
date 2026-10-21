@@ -383,7 +383,8 @@ const TOPIC_LISTS = [
   },
   {
     id: "ek-3",
-    subject: "EK",
+    subject: "ZR",
+    subjects: ["ZR", "EK"],
     groups: ["3a", "3b", "3"],
     topics: [
       "W pracowni komputerowej – przypominamy zasady bezpieczeństwa.",
@@ -1578,13 +1579,23 @@ function bindCollapsibleSummary(details, storageKey) {
   });
 }
 
+function getTopicListSubjects(list) {
+  return Array.isArray(list.subjects) && list.subjects.length
+    ? list.subjects
+    : [list.subject];
+}
+
+function topicListMatchesSubject(list, subjectLabel) {
+  return getTopicListSubjects(list).includes(subjectLabel);
+}
+
 function findTopicList(subject = "", group = "") {
   const subjectLabel = getSubjectShortLabel(subject);
   const groupLabel = normalizeGroupLabel(group);
 
   return TOPIC_LISTS.find(
     (list) =>
-      list.subject === subjectLabel &&
+      topicListMatchesSubject(list, subjectLabel) &&
       list.groups.some((item) => normalizeGroupLabel(item) === groupLabel),
   ) ?? null;
 }
@@ -1723,7 +1734,7 @@ function getUsedCatalogTopicIndexes(list, groupLabel) {
     const scheduled = getScheduledLessonsForDate(date);
 
     scheduled.forEach((lesson, index) => {
-      if (getSubjectShortLabel(lesson.subject) !== list.subject) {
+      if (!topicListMatchesSubject(list, getSubjectShortLabel(lesson.subject))) {
         return;
       }
       if (normalizeGroupLabel(lesson.group) !== groupLabel) {
@@ -1742,7 +1753,7 @@ function getUsedCatalogTopicIndexes(list, groupLabel) {
     });
 
     getExtraLessons(dateKey).forEach((lesson) => {
-      if (getSubjectShortLabel(lesson.subject) !== list.subject) {
+      if (!topicListMatchesSubject(list, getSubjectShortLabel(lesson.subject))) {
         return;
       }
       if (normalizeGroupLabel(lesson.group) !== groupLabel) {
