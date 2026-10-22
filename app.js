@@ -1417,9 +1417,20 @@ function bindLessonFields(clone, getLesson, saveLesson) {
       field.value = lesson[key] ?? "";
     }
 
+    if (key === "topic" && Number.isInteger(lesson.topicCatalogIndex)) {
+      field.dataset.topicCatalogIndex = String(lesson.topicCatalogIndex);
+    }
+
     field.addEventListener("input", () => {
       const currentLesson = getLesson();
       currentLesson[key] = field.type === "checkbox" ? field.checked : field.value;
+      if (key === "topic") {
+        const rawIndex = field.dataset.topicCatalogIndex;
+        const parsedIndex = Number.parseInt(rawIndex, 10);
+        currentLesson.topicCatalogIndex = Number.isInteger(parsedIndex)
+          ? parsedIndex
+          : null;
+      }
       saveLesson(currentLesson);
       if (field.type !== "checkbox") {
         scheduleCalendarOnlyRefresh();
@@ -1498,7 +1509,11 @@ function renderDayDetails() {
         persistEntryWithoutUiRefresh(currentEntry);
       },
     );
-    setupTopicField(clone, lesson.subject, lesson.group);
+    setupTopicField(clone, lesson.subject, lesson.group, {
+      dateKey: selectedDateKey,
+      slotKind: "scheduled",
+      slotIndex: index,
+    });
 
     elements.lessonList.appendChild(clone);
   });
@@ -1525,7 +1540,11 @@ function renderDayDetails() {
         persistEntryWithoutUiRefresh(currentEntry);
         clone.querySelector(".lesson-label").textContent =
           `${extras[index].subject || "Zastępstwo"}${extras[index].group ? ` • ${extras[index].group}` : ""}`;
-        setupTopicField(clone, extras[index].subject, extras[index].group);
+        setupTopicField(clone, extras[index].subject, extras[index].group, {
+          dateKey: selectedDateKey,
+          slotKind: "extra",
+          slotIndex: index,
+        });
         renderTopicProgress();
         scheduleCalendarOnlyRefresh();
       });
@@ -1551,7 +1570,11 @@ function renderDayDetails() {
         persistEntryWithoutUiRefresh(currentEntry);
       },
     );
-    setupTopicField(clone, lesson.subject, lesson.group);
+    setupTopicField(clone, lesson.subject, lesson.group, {
+      dateKey: selectedDateKey,
+      slotKind: "extra",
+      slotIndex: index,
+    });
 
     elements.lessonList.appendChild(clone);
   });
@@ -1664,34 +1687,115 @@ function parseTopicOptionValue(value) {
   return match ? Number(match[1]) : -1;
 }
 
-function findTopicIndex(list, topicValue) {
+function topicTextMatchesCatalog(catalogTopic, topicValue) {
+  const raw = String(topicValue || "").trim();
+  if (!raw) {
+    return false;
+  }
+  const catalog = String(catalogTopic || "").trim();
+  const numbered = raw.match(/^(\d{1,3})\.\s([\s\S]*)$/);
+  const rest = numbered ? numbered[2].trim() : normalizeTopicText(raw);
+  return !rest || rest === catalog || catalog.startsWith(rest);
+}
+
+function findTopicIndex(list, topicValue, occupiedIndexes = null) {
   const raw = String(topicValue || "").trim();
   if (!raw) {
     return -1;
   }
 
-  // Stare zapisy „N. treść” — ufamy tylko numerowi z listy, bez zgadywania innych pozycji.
+  // Stare zapisy „N. treść” — ufamy tylko numerowi z listy.
   const numbered = raw.match(/^(\d{1,3})\.\s([\s\S]*)$/);
   if (numbered) {
     const index = Number(numbered[1]) - 1;
-    if (index >= 0 && index < list.topics.length) {
-      const rest = numbered[2].trim();
-      const catalog = list.topics[index].trim();
-      if (!rest || rest === catalog || catalog.startsWith(rest)) {
-        return index;
-      }
+    if (
+      index >= 0 &&
+      index < list.topics.length &&
+      topicTextMatchesCatalog(list.topics[index], raw) &&
+      (!occupiedIndexes || !occupiedIndexes.has(index))
+    ) {
+      return index;
     }
   }
 
   const normalized = normalizeTopicText(raw);
-  const exactMatches = [];
-  list.topics.forEach((topic, index) => {
-    if (topic.trim() === normalized) {
-      exactMatches.push(index);
+  for (let index = 0; index < list.topics.length; index += 1) {
+    if (occupiedIndexes?.has(index)) {
+      continue;
     }
+    if (list.topics[index].trim() === normalized) {
+      return index;
+    }
+  }
+  return -1;
+}
+
+function resolveCatalogTopicIndex(list, lesson, occupiedIndexes = null) {
+  const preferred = Number.isInteger(lesson?.topicCatalogIndex)
+    ? lesson.topicCatalogIndex
+    : Number.parseInt(lesson?.topicCatalogIndex, 10);
+  if (
+    Number.isInteger(preferred) &&
+    preferred >= 0 &&
+    preferred < list.topics.length &&
+    topicTextMatchesCatalog(list.topics[preferred], lesson?.topic) &&
+    (!occupiedIndexes || !occupiedIndexes.has(preferred))
+  ) {
+    return preferred;
+  }
+  return findTopicIndex(list, lesson?.topic, occupiedIndexes);
+}
+
+function getUsedCatalogTopicIndexes(list, groupLabel, skip = null) {
+  const used = new Set();
+
+  const claimLesson = (dateKey, slotKind, slotIndex, lesson) => {
+    if (
+      skip &&
+      skip.dateKey === dateKey &&
+      skip.slotKind === slotKind &&
+      skip.slotIndex === slotIndex
+    ) {
+      return;
+    }
+    if (!lesson || lesson.canceled) {
+      return;
+    }
+    if (!String(lesson.topic || "").trim()) {
+      return;
+    }
+    const topicIndex = resolveCatalogTopicIndex(list, lesson, used);
+    if (topicIndex >= 0) {
+      used.add(topicIndex);
+    }
+  };
+
+  Object.entries(state.entries).forEach(([dateKey, entry]) => {
+    const date = parseDateKey(dateKey);
+    const scheduled = getScheduledLessonsForDate(date);
+
+    scheduled.forEach((lesson, index) => {
+      if (!topicListMatchesSubject(list, getSubjectShortLabel(lesson.subject))) {
+        return;
+      }
+      if (normalizeGroupLabel(lesson.group) !== groupLabel) {
+        return;
+      }
+      claimLesson(dateKey, "scheduled", index, getDayLessonData(entry, index));
+    });
+
+    getExtraLessons(dateKey).forEach((lesson, index) => {
+      if (!topicListMatchesSubject(list, getSubjectShortLabel(lesson.subject))) {
+        return;
+      }
+      if (normalizeGroupLabel(lesson.group) !== groupLabel) {
+        return;
+      }
+      claimLesson(dateKey, "extra", index, lesson);
+    });
   });
-  // Duplikaty w rozkładzie (np. ten sam temat na 2 godz.) — bierzemy pierwsze trafienie.
-  return exactMatches.length > 0 ? exactMatches[0] : -1;
+
+  return used;
 }
 
 function stripLeadingTopicNumber(topic = "") {
@@ -1731,12 +1835,18 @@ function migrateStoredTopicNumbers(targetState = state) {
   return changed;
 }
 
-function setupTopicField(clone, subject, group) {
+function setupTopicField(clone, subject, group, lessonRef = null) {
   const topicInput = clone.querySelector('[data-field="topic"]');
   const topicSelect = clone.querySelector(".topic-select");
   const hint = clone.querySelector(".topic-field-hint");
   if (!topicInput || !topicSelect) {
     return;
+  }
+
+  if (lessonRef) {
+    clone.dataset.topicSlotKind = lessonRef.slotKind;
+    clone.dataset.topicSlotIndex = String(lessonRef.slotIndex);
+    clone.dataset.topicDateKey = lessonRef.dateKey || selectedDateKey || "";
   }
 
   const list = findTopicList(subject, group);
@@ -1755,23 +1865,50 @@ function setupTopicField(clone, subject, group) {
 
   const groupLabel = normalizeGroupLabel(group);
   const progress = getTopicProgressForGroup(list, groupLabel);
-  const currentValue = topicInput.value;
-  const matchedIndex = findTopicIndex(list, currentValue);
-  const isCustom = Boolean(currentValue.trim()) && matchedIndex < 0;
+  const skip = {
+    dateKey: clone.dataset.topicDateKey || selectedDateKey || "",
+    slotKind: clone.dataset.topicSlotKind || lessonRef?.slotKind || "scheduled",
+    slotIndex: Number.parseInt(
+      clone.dataset.topicSlotIndex ?? lessonRef?.slotIndex ?? "-1",
+      10,
+    ),
+  };
+  const usedIndexes = getUsedCatalogTopicIndexes(list, groupLabel, skip);
+  const currentLesson = {
+    topic: topicInput.value,
+    topicCatalogIndex: Number.parseInt(topicInput.dataset.topicCatalogIndex, 10),
+  };
+  if (!Number.isInteger(currentLesson.topicCatalogIndex)) {
+    currentLesson.topicCatalogIndex = null;
+  }
+  const matchedIndex = resolveCatalogTopicIndex(list, currentLesson, usedIndexes);
+  const isCustom = Boolean(String(currentLesson.topic || "").trim()) && matchedIndex < 0;
+  const remainingCount = list.topics.filter(
+    (_, index) => !usedIndexes.has(index) || index === matchedIndex,
+  ).length;
 
   // Stare zapisy „1. Temat…” → sam tekst bez numeru (żeby nie mylił z dziennikiem).
   if (matchedIndex >= 0) {
     const plainTopic = list.topics[matchedIndex];
-    if (topicInput.value !== plainTopic) {
-      topicInput.value = plainTopic;
+    const needsTopicWrite = topicInput.value !== plainTopic;
+    const needsIndexWrite =
+      Number.parseInt(topicInput.dataset.topicCatalogIndex, 10) !== matchedIndex;
+    topicInput.dataset.topicCatalogIndex = String(matchedIndex);
+    if (needsTopicWrite || needsIndexWrite) {
+      if (needsTopicWrite) {
+        topicInput.value = plainTopic;
+      }
       topicInput.dispatchEvent(new Event("input", { bubbles: true }));
     }
   } else if (isCustom) {
-    const stripped = normalizeTopicText(currentValue);
-    if (stripped && stripped !== currentValue.trim()) {
+    delete topicInput.dataset.topicCatalogIndex;
+    const stripped = normalizeTopicText(currentLesson.topic);
+    if (stripped && stripped !== String(currentLesson.topic).trim()) {
       topicInput.value = stripped;
       topicInput.dispatchEvent(new Event("input", { bubbles: true }));
     }
+  } else {
+    delete topicInput.dataset.topicCatalogIndex;
   }
 
   topicSelect.hidden = false;
@@ -1782,10 +1919,14 @@ function setupTopicField(clone, subject, group) {
 
   const placeholder = document.createElement("option");
   placeholder.value = "";
-  placeholder.textContent = `Wybierz temat (${progress.used}/${progress.total})`;
+  placeholder.textContent = `Wybierz temat (${remainingCount} z ${list.topics.length})`;
   topicSelect.appendChild(placeholder);
 
   list.topics.forEach((topic, index) => {
+    if (usedIndexes.has(index) && index !== matchedIndex) {
+      return;
+    }
+
     const option = document.createElement("option");
     option.value = topicOptionValue(index);
     option.textContent = topic;
@@ -1817,6 +1958,7 @@ function setupTopicField(clone, subject, group) {
 
       if (topicSelect.value === TOPIC_CUSTOM_VALUE) {
         topicInput.hidden = false;
+        delete topicInput.dataset.topicCatalogIndex;
         topicInput.value = "";
         topicInput.focus();
         topicInput.dispatchEvent(new Event("input", { bubbles: true }));
@@ -1829,6 +1971,11 @@ function setupTopicField(clone, subject, group) {
         topicSelect.dataset.topicGroup || group,
       );
       topicInput.hidden = true;
+      if (selectedIndex >= 0) {
+        topicInput.dataset.topicCatalogIndex = String(selectedIndex);
+      } else {
+        delete topicInput.dataset.topicCatalogIndex;
+      }
       topicInput.value =
         selectedIndex >= 0 && selectedList
           ? selectedList.topics[selectedIndex]
@@ -1840,6 +1987,23 @@ function setupTopicField(clone, subject, group) {
         topicSelect.dataset.topicSubject || subject,
         topicSelect.dataset.topicGroup || group,
       );
+      // Odśwież inne pola tej samej klasy, żeby zniknął użyty temat.
+      elements.lessonList
+        ?.querySelectorAll(".lesson-item")
+        .forEach((item) => {
+          if (item === clone) {
+            return;
+          }
+          const otherSelect = item.querySelector(".topic-select");
+          if (!otherSelect || otherSelect.hidden) {
+            return;
+          }
+          setupTopicField(
+            item,
+            otherSelect.dataset.topicSubject || "",
+            otherSelect.dataset.topicGroup || "",
+          );
+        });
     });
   }
 
@@ -2341,8 +2505,10 @@ function getLessonBadgeClass(label = "") {
 
 function getDayLessonData(entry, index) {
   const saved = entry.lessonData[index] ?? {};
+  const catalogIndex = Number.parseInt(saved.topicCatalogIndex, 10);
   return {
     topic: saved.topic ?? "",
+    topicCatalogIndex: Number.isInteger(catalogIndex) ? catalogIndex : null,
     notes: saved.notes ?? "",
     completed: Boolean(saved.completed),
     canceled: Boolean(saved.canceled),
