@@ -262,7 +262,7 @@ const TOPIC_LISTS = [
     groups: ["4a", "4b"],
     topics: [
       "Zapoznanie z wymaganiami edukacyjnymi z Informatyki i regulaminem pracowni komputerowej.",
-      "Praca z programem komputerowym i zasady zachowania w pracowni - organizujemy stanowisko i dbamy o zdrowie podczas pracy.",
+      "Praca z programem komputerowym i zasady zachowania w pracowni — organizujemy stanowisko i dbamy o zdrowie podczas pracy.",
       "Tworzymy rysunek w programie Paint i go zapisujemy - nadajemy plikowi nazwę i wybieramy miejsce zapisu.",
       "Wysyłamy e-maila z załącznikiem - stosujemy netykietę i chronimy dane osobowe.",
       "Korzystamy z edytora tekstu - tworzymy i zapisujemy krótki tekst według własnego pomysłu.",
@@ -345,40 +345,40 @@ const TOPIC_LISTS = [
     subject: "EK",
     groups: ["1a", "1b", "1", "i"],
     topics: [
-      "Poznajemy pracownię komputerową",
-      "Poznajemy mysz komputerową",
-      "Ćwiczymy posługiwanie się myszą",
-      "Tworzymy instrukcje",
-      "Poznajemy edytor grafiki Paint",
-      "Pracujemy w edytorze grafiki Paint",
-      "Rysujemy w programie Paint",
-      "Komputer naszych marzeń",
-      "Poznajemy klawiaturę – Backspace",
-      "Powtarzamy wiadomości",
-      "Kodujemy drogę",
-      "Poznajemy język komputerów",
-      "Kodujemy drogę",
-      "Pracujemy według instrukcji",
-      "Pracujemy według instrukcji",
-      "Rysujemy choinkę – zapisujemy plik",
-      "Poznajemy klawiaturę – Spacja i Shift",
-      "Dodajemy tekst do obrazu",
-      "Rysujemy w edytorze grafiki Paint",
-      "Kodujemy i szukamy błędów w kodach",
-      "Kodujemy",
-      "Poznajemy sieć – internet",
-      "Poznajemy klawiaturę – Alt",
-      "Poznajemy klawiaturę – Enter",
-      "Klikamy i gramy",
-      "Rysujemy w edytorze grafiki Paint",
-      "Dodajemy tekst do grafiki",
-      "Utrwalenie – rysujemy w Paint",
-      "Poznajemy roboty",
-      "Poznajemy Scratcha",
-      "Programujemy w Scratchu",
-      "Rozwiązujemy łamigłówki",
-      "Rozwiązujemy łamigłówki",
-      "Poznajemy zasady bezpiecznego wypoczynku",
+      "Poznajemy pracownię komputerową.",
+      "Poznajemy mysz komputerową.",
+      "Ćwiczymy posługiwanie się myszą komputerową.",
+      "Tworzymy instrukcje.",
+      "Poznajemy edytor grafiki Paint.",
+      "Pracujemy w edytorze grafiki Paint.",
+      "Rysujemy w programie Paint.",
+      "Komputer naszych marzeń.",
+      "Poznajemy klawiaturę – klawisz Backspace.",
+      "Powtarzamy wiadomości.",
+      "Kodujemy drogę.",
+      "Poznajemy język komputerów.",
+      "Kodujemy drogę.",
+      "Pracujemy według instrukcji.",
+      "Pracujemy według instrukcji.",
+      "Rysujemy choinkę – zapisujemy plik w programie Paint.",
+      "Poznajemy klawiaturę – klawisze Spacja i Shift.",
+      "Dodajemy tekst do obrazu.",
+      "Rysujemy w edytorze grafiki Paint.",
+      "Kodujemy i szukamy błędów w kodach.",
+      "Kodujemy.",
+      "Poznajemy sieć – internet.",
+      "Poznajemy klawiaturę – klawisz Alt.",
+      "Poznajemy klawiaturę – klawisz Enter.",
+      "Klikamy i gramy.",
+      "Rysujemy w edytorze grafiki Paint.",
+      "Dodajemy tekst do grafiki.",
+      "Utrwalenie wiadomości – rysujemy w edytorze grafiki Paint.",
+      "Poznajemy roboty.",
+      "Poznajemy Scratcha.",
+      "Programujemy w Scratchu.",
+      "Rozwiązujemy łamigłówki.",
+      "Rozwiązujemy łamigłówki.",
+      "Poznajemy zasady bezpiecznego wypoczynku.",
     ],
   },
   {
@@ -1660,15 +1660,38 @@ function findTopicIndex(list, topicValue) {
     return -1;
   }
 
-  const byNumber = list.topics.findIndex(
+  const numbered = raw.match(/^(\d{1,3})\.\s([\s\S]*)$/);
+  if (numbered) {
+    const index = Number(numbered[1]) - 1;
+    if (index >= 0 && index < list.topics.length) {
+      const rest = numbered[2].trim();
+      const catalog = list.topics[index].trim();
+      if (
+        !rest ||
+        rest === catalog ||
+        catalog.startsWith(rest) ||
+        rest.startsWith(catalog)
+      ) {
+        return index;
+      }
+    }
+  }
+
+  const byFullNumbered = list.topics.findIndex(
     (topic, index) => formatNumberedTopic(index + 1, topic) === raw,
   );
-  if (byNumber >= 0) {
-    return byNumber;
+  if (byFullNumbered >= 0) {
+    return byFullNumbered;
   }
 
   const normalized = normalizeTopicText(raw);
-  return list.topics.findIndex((topic) => topic.trim() === normalized);
+  const exactMatches = [];
+  list.topics.forEach((topic, index) => {
+    if (topic.trim() === normalized) {
+      exactMatches.push(index);
+    }
+  });
+  return exactMatches.length === 1 ? exactMatches[0] : -1;
 }
 
 function setupTopicField(clone, subject, group) {
@@ -1706,6 +1729,7 @@ function setupTopicField(clone, subject, group) {
   topicSelect.hidden = false;
   topicSelect.dataset.topicSubject = subject;
   topicSelect.dataset.topicGroup = group;
+  topicSelect.dataset.rebuilding = "1";
   topicSelect.innerHTML = "";
 
   const placeholder = document.createElement("option");
@@ -1735,6 +1759,7 @@ function setupTopicField(clone, subject, group) {
     : matchedIndex >= 0
       ? formatNumberedTopic(matchedIndex + 1, list.topics[matchedIndex])
       : "";
+  delete topicSelect.dataset.rebuilding;
 
   topicInput.hidden = !isCustom;
   topicInput.classList.toggle("topic-custom-input", true);
@@ -1743,6 +1768,10 @@ function setupTopicField(clone, subject, group) {
   if (!topicSelect.dataset.bound) {
     topicSelect.dataset.bound = "1";
     topicSelect.addEventListener("change", () => {
+      if (topicSelect.dataset.rebuilding) {
+        return;
+      }
+
       if (topicSelect.value === TOPIC_CUSTOM_VALUE) {
         topicInput.hidden = false;
         topicInput.value = "";
