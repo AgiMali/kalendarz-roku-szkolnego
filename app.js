@@ -596,6 +596,9 @@ const auth = getAuth(firebaseApp);
 const db = getFirestore(firebaseApp);
 
 let state = loadState();
+if (migrateStoredTopicNumbers(state)) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
 let selectedMonthIndex = 0;
 let selectedDateKey = null;
 let currentUser = null;
@@ -796,14 +799,16 @@ function importPlannerData(event) {
 }
 
 function normalizeImportedState(rawState) {
-  return {
+  const normalized = {
     settings: {
       startDate: rawState?.settings?.startDate ?? DEFAULT_START_DATE,
       endDate: rawState?.settings?.endDate ?? DEFAULT_END_DATE,
     },
-    entries: rawState?.entries && typeof rawState.entries === "object" ? rawState.entries : {},
+    entries: rawState?.entries && typeof rawState.entries === "object" ? structuredClone(rawState.entries) : {},
     weeklyPlan: normalizeWeeklyPlan(rawState?.weeklyPlan),
   };
+  migrateStoredTopicNumbers(normalized);
+  return normalized;
 }
 
 function getCustomDayStatusInfo(dateKey) {
@@ -1685,7 +1690,45 @@ function findTopicIndex(list, topicValue) {
       exactMatches.push(index);
     }
   });
-  return exactMatches.length === 1 ? exactMatches[0] : -1;
+  // Duplikaty w rozkładzie (np. ten sam temat na 2 godz.) — bierzemy pierwsze trafienie.
+  return exactMatches.length > 0 ? exactMatches[0] : -1;
+}
+
+function stripLeadingTopicNumber(topic = "") {
+  return String(topic)
+    .trim()
+    .replace(/^\d{1,3}\.\s+/, "")
+    .trim();
+}
+
+function migrateStoredTopicNumbers(targetState = state) {
+  let changed = false;
+
+  Object.values(targetState.entries || {}).forEach((entry) => {
+    Object.values(entry.lessonData || {}).forEach((lesson) => {
+      if (!lesson || typeof lesson.topic !== "string") {
+        return;
+      }
+      const stripped = stripLeadingTopicNumber(lesson.topic);
+      if (stripped && stripped !== lesson.topic.trim()) {
+        lesson.topic = stripped;
+        changed = true;
+      }
+    });
+
+    (entry.extraLessons || []).forEach((lesson) => {
+      if (!lesson || typeof lesson.topic !== "string") {
+        return;
+      }
+      const stripped = stripLeadingTopicNumber(lesson.topic);
+      if (stripped && stripped !== lesson.topic.trim()) {
+        lesson.topic = stripped;
+        changed = true;
+      }
+    });
+  });
+
+  return changed;
 }
 
 function setupTopicField(clone, subject, group) {
