@@ -1247,17 +1247,44 @@ function clearWeeklyPlan() {
   }
 }
 
+function getUnmarkedLessonLabels(date, dateKey) {
+  const entry = getEntry(dateKey);
+  const labels = [];
+
+  getScheduledLessonsForDate(date).forEach((lesson, index) => {
+    const dayLesson = getDayLessonData(entry, index);
+    if (dayLesson.completed || dayLesson.canceled) {
+      return;
+    }
+    labels.push(
+      `${getSubjectShortLabel(lesson.subject) || "Lekcja"}${
+        lesson.group ? ` • ${normalizeGroupLabel(lesson.group)}` : ""
+      }`,
+    );
+  });
+
+  getExtraLessons(dateKey).forEach((lesson) => {
+    if (lesson.completed || lesson.canceled) {
+      return;
+    }
+    labels.push(
+      `${getSubjectShortLabel(lesson.subject) || "Zastępstwo"}${
+        lesson.group ? ` • ${normalizeGroupLabel(lesson.group)}` : ""
+      }`,
+    );
+  });
+
+  return labels;
+}
+
 function isDayRealized(date, dateKey) {
   const lessons = getScheduledLessonsForDate(date);
-  if (!lessons.length) {
+  const extras = getExtraLessons(dateKey);
+  if (!lessons.length && !extras.length) {
     return false;
   }
 
-  const entry = getEntry(dateKey);
-  return lessons.every((_, index) => {
-    const dayLesson = getDayLessonData(entry, index);
-    return dayLesson.completed || dayLesson.canceled;
-  });
+  return getUnmarkedLessonLabels(date, dateKey).length === 0;
 }
 
 function renderDays() {
@@ -1444,12 +1471,48 @@ function bindLessonFields(clone, getLesson, saveLesson) {
       field.addEventListener("change", () => {
         const currentLesson = getLesson();
         currentLesson[key] = field.checked;
+
+        // OK i Nie wykluczają się — przy wycieczce wystarczy „Nie”, bez tematu.
+        if (key === "completed" && field.checked) {
+          currentLesson.canceled = false;
+          const canceledBox = clone.querySelector('[data-field="canceled"]');
+          if (canceledBox) {
+            canceledBox.checked = false;
+          }
+        }
+        if (key === "canceled" && field.checked) {
+          currentLesson.completed = false;
+          const completedBox = clone.querySelector('[data-field="completed"]');
+          if (completedBox) {
+            completedBox.checked = false;
+          }
+        }
+
         saveLesson(currentLesson);
         renderSummary();
         renderDays();
+        updateDayRealizationHint();
       });
     }
   });
+}
+
+function updateDayRealizationHint() {
+  if (!selectedDateKey || !elements.selectedDateSubtitle) {
+    return;
+  }
+
+  const date = parseDateKey(selectedDateKey);
+  const weekdayProgress = getWeekdayProgress(date);
+  const base = buildSelectedDateSubtitleResolved(date, weekdayProgress);
+  const unmarked = getUnmarkedLessonLabels(date, selectedDateKey);
+
+  if (!unmarked.length) {
+    elements.selectedDateSubtitle.textContent = `${base} Dzień domknięty — zielona ramka w kalendarzu.`;
+    return;
+  }
+
+  elements.selectedDateSubtitle.textContent = `${base} Do zielonej ramki brakuje OK lub Nie przy: ${unmarked.join(", ")}.`;
 }
 
 function renderDayDetails() {
@@ -1477,6 +1540,7 @@ function renderDayDetails() {
 
   elements.selectedDateTitle.textContent = formatLongDate(date);
   elements.selectedDateSubtitle.textContent = buildSelectedDateSubtitleResolved(date, weekdayProgress);
+  updateDayRealizationHint();
   elements.dayStatusLabel.disabled = false;
   elements.dayNotes.disabled = false;
   syncStatusChips(entry.dayStatusType ?? "");
