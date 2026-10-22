@@ -75,7 +75,7 @@ const TOPIC_LISTS = [
       "Mali konstruktorzy – budujemy własne modele.",
       "Bezpieczny Internet – DBI 2027",
       "DBI – plakat w Paint",
-      "Interland – uczymy się bezpiecznie.",
+      "Komputerowy detektyw",
       "Poznajemy Office.com – logujemy się do chmury.",
       "Pierwsze kroki w Word Online – piszemy i poprawiamy tekst.",
       "Zaproszenie na… - czcionka i jej tajemnice.",
@@ -1693,9 +1693,18 @@ function topicTextMatchesCatalog(catalogTopic, topicValue) {
     return false;
   }
   const catalog = String(catalogTopic || "").trim();
+  const normalized = normalizeTopicText(raw);
+  if (normalized === catalog) {
+    return true;
+  }
+
+  // Stary zapis „N. skrócona treść…” — tylko gdy numer i dłuższy prefiks się zgadzają.
   const numbered = raw.match(/^(\d{1,3})\.\s([\s\S]*)$/);
-  const rest = numbered ? numbered[2].trim() : normalizeTopicText(raw);
-  return !rest || rest === catalog || catalog.startsWith(rest);
+  if (!numbered) {
+    return false;
+  }
+  const rest = numbered[2].trim();
+  return rest.length >= 24 && catalog.startsWith(rest);
 }
 
 function findTopicIndex(list, topicValue, occupiedIndexes = null) {
@@ -1704,7 +1713,6 @@ function findTopicIndex(list, topicValue, occupiedIndexes = null) {
     return -1;
   }
 
-  // Stare zapisy „N. treść” — ufamy tylko numerowi z listy.
   const numbered = raw.match(/^(\d{1,3})\.\s([\s\S]*)$/);
   if (numbered) {
     const index = Number(numbered[1]) - 1;
@@ -1734,16 +1742,17 @@ function resolveCatalogTopicIndex(list, lesson, occupiedIndexes = null) {
   const preferred = Number.isInteger(lesson?.topicCatalogIndex)
     ? lesson.topicCatalogIndex
     : Number.parseInt(lesson?.topicCatalogIndex, 10);
+  const topicText = String(lesson?.topic || "").trim();
   if (
     Number.isInteger(preferred) &&
     preferred >= 0 &&
     preferred < list.topics.length &&
-    topicTextMatchesCatalog(list.topics[preferred], lesson?.topic) &&
+    normalizeTopicText(topicText) === list.topics[preferred].trim() &&
     (!occupiedIndexes || !occupiedIndexes.has(preferred))
   ) {
     return preferred;
   }
-  return findTopicIndex(list, lesson?.topic, occupiedIndexes);
+  return findTopicIndex(list, topicText, occupiedIndexes);
 }
 
 function getUsedCatalogTopicIndexes(list, groupLabel, skip = null) {
