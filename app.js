@@ -1845,10 +1845,52 @@ function getUsedCatalogTopicIndexes(list, groupLabel) {
   return used;
 }
 
+function countFilledTopicsForGroup(list, groupLabel) {
+  let filled = 0;
+
+  Object.entries(state.entries).forEach(([dateKey, entry]) => {
+    const date = parseDateKey(dateKey);
+    const scheduled = getScheduledLessonsForDate(date);
+
+    scheduled.forEach((lesson, index) => {
+      if (!topicListMatchesSubject(list, getSubjectShortLabel(lesson.subject))) {
+        return;
+      }
+      if (normalizeGroupLabel(lesson.group) !== groupLabel) {
+        return;
+      }
+
+      const dayLesson = getDayLessonData(entry, index);
+      if (dayLesson.canceled) {
+        return;
+      }
+      if (String(dayLesson.topic || "").trim()) {
+        filled += 1;
+      }
+    });
+
+    getExtraLessons(dateKey).forEach((lesson) => {
+      if (!topicListMatchesSubject(list, getSubjectShortLabel(lesson.subject))) {
+        return;
+      }
+      if (normalizeGroupLabel(lesson.group) !== groupLabel) {
+        return;
+      }
+      if (lesson.canceled) {
+        return;
+      }
+      if (String(lesson.topic || "").trim()) {
+        filled += 1;
+      }
+    });
+  });
+
+  return filled;
+}
+
 function getTopicProgressForGroup(list, groupLabel) {
-  const used = getUsedCatalogTopicIndexes(list, groupLabel);
   return {
-    used: used.size,
+    used: countFilledTopicsForGroup(list, groupLabel),
     total: list.topics.length,
   };
 }
