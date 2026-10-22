@@ -1716,6 +1716,21 @@ function setupTopicField(clone, subject, group) {
   const matchedIndex = findTopicIndex(list, currentValue);
   const isCustom = Boolean(currentValue.trim()) && matchedIndex < 0;
 
+  // Stare zapisy „1. Temat…” → sam tekst bez numeru (żeby nie mylił z dziennikiem).
+  if (matchedIndex >= 0) {
+    const plainTopic = list.topics[matchedIndex];
+    if (topicInput.value !== plainTopic) {
+      topicInput.value = plainTopic;
+      topicInput.dispatchEvent(new Event("input", { bubbles: true }));
+    }
+  } else if (isCustom) {
+    const stripped = normalizeTopicText(currentValue);
+    if (stripped && stripped !== currentValue.trim()) {
+      topicInput.value = stripped;
+      topicInput.dispatchEvent(new Event("input", { bubbles: true }));
+    }
+  }
+
   topicSelect.hidden = false;
   topicSelect.dataset.topicSubject = subject;
   topicSelect.dataset.topicGroup = group;
