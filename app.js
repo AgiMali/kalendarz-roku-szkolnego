@@ -500,7 +500,7 @@ const TOPIC_LISTS = [
   {
     id: "inf-8",
     subject: "INF",
-    groups: ["8a", "8b", "8a_2", "8a8b", "8b_ch"],
+    groups: ["8a_1", "8b_1", "8ab"],
     topics: [
       "Zasady bezpiecznej pracy na lekcjach. Zapoznanie uczniów z wymaganiami edukacyjnymi.",
       "Office 365 w praktyce – organizujemy swoją przestrzeń pracy.",
