@@ -1643,15 +1643,20 @@ function findTopicList(subject = "", group = "") {
   ) ?? null;
 }
 
-function formatNumberedTopic(number, topic) {
-  return `${number}. ${topic}`;
-}
-
 function normalizeTopicText(topic = "") {
   return String(topic)
     .trim()
     .replace(/^\d{1,3}\.\s*/, "")
     .trim();
+}
+
+function topicOptionValue(index) {
+  return `topic:${index}`;
+}
+
+function parseTopicOptionValue(value) {
+  const match = String(value || "").match(/^topic:(\d+)$/);
+  return match ? Number(match[1]) : -1;
 }
 
 function findTopicIndex(list, topicValue) {
@@ -1660,28 +1665,17 @@ function findTopicIndex(list, topicValue) {
     return -1;
   }
 
+  // Stare zapisy „N. treść” — ufamy tylko numerowi z listy, bez zgadywania innych pozycji.
   const numbered = raw.match(/^(\d{1,3})\.\s([\s\S]*)$/);
   if (numbered) {
     const index = Number(numbered[1]) - 1;
     if (index >= 0 && index < list.topics.length) {
       const rest = numbered[2].trim();
       const catalog = list.topics[index].trim();
-      if (
-        !rest ||
-        rest === catalog ||
-        catalog.startsWith(rest) ||
-        rest.startsWith(catalog)
-      ) {
+      if (!rest || rest === catalog || catalog.startsWith(rest)) {
         return index;
       }
     }
-  }
-
-  const byFullNumbered = list.topics.findIndex(
-    (topic, index) => formatNumberedTopic(index + 1, topic) === raw,
-  );
-  if (byFullNumbered >= 0) {
-    return byFullNumbered;
   }
 
   const normalized = normalizeTopicText(raw);
@@ -1718,13 +1712,9 @@ function setupTopicField(clone, subject, group) {
 
   const groupLabel = normalizeGroupLabel(group);
   const progress = getTopicProgressForGroup(list, groupLabel);
-  const usedIndexes = getUsedCatalogTopicIndexes(list, groupLabel);
   const currentValue = topicInput.value;
   const matchedIndex = findTopicIndex(list, currentValue);
   const isCustom = Boolean(currentValue.trim()) && matchedIndex < 0;
-  const remainingCount = list.topics.filter(
-    (_, index) => !usedIndexes.has(index) || index === matchedIndex,
-  ).length;
 
   topicSelect.hidden = false;
   topicSelect.dataset.topicSubject = subject;
@@ -1734,18 +1724,13 @@ function setupTopicField(clone, subject, group) {
 
   const placeholder = document.createElement("option");
   placeholder.value = "";
-  placeholder.textContent = `Wybierz temat (${remainingCount} z ${list.topics.length})`;
+  placeholder.textContent = `Wybierz temat (${progress.used}/${progress.total})`;
   topicSelect.appendChild(placeholder);
 
   list.topics.forEach((topic, index) => {
-    if (usedIndexes.has(index) && index !== matchedIndex) {
-      return;
-    }
-
     const option = document.createElement("option");
-    const numbered = formatNumberedTopic(index + 1, topic);
-    option.value = numbered;
-    option.textContent = numbered;
+    option.value = topicOptionValue(index);
+    option.textContent = topic;
     topicSelect.appendChild(option);
   });
 
@@ -1757,7 +1742,7 @@ function setupTopicField(clone, subject, group) {
   topicSelect.value = isCustom
     ? TOPIC_CUSTOM_VALUE
     : matchedIndex >= 0
-      ? formatNumberedTopic(matchedIndex + 1, list.topics[matchedIndex])
+      ? topicOptionValue(matchedIndex)
       : "";
   delete topicSelect.dataset.rebuilding;
 
@@ -1780,8 +1765,16 @@ function setupTopicField(clone, subject, group) {
         return;
       }
 
+      const selectedIndex = parseTopicOptionValue(topicSelect.value);
+      const selectedList = findTopicList(
+        topicSelect.dataset.topicSubject || subject,
+        topicSelect.dataset.topicGroup || group,
+      );
       topicInput.hidden = true;
-      topicInput.value = topicSelect.value;
+      topicInput.value =
+        selectedIndex >= 0 && selectedList
+          ? selectedList.topics[selectedIndex]
+          : "";
       topicInput.dispatchEvent(new Event("input", { bubbles: true }));
       renderTopicProgress();
       setupTopicField(
@@ -1796,53 +1789,6 @@ function setupTopicField(clone, subject, group) {
     hint.hidden = false;
     hint.textContent = `${progress.used}/${progress.total}`;
   }
-}
-
-function getUsedCatalogTopicIndexes(list, groupLabel) {
-  const used = new Set();
-
-  Object.entries(state.entries).forEach(([dateKey, entry]) => {
-    const date = parseDateKey(dateKey);
-    const scheduled = getScheduledLessonsForDate(date);
-
-    scheduled.forEach((lesson, index) => {
-      if (!topicListMatchesSubject(list, getSubjectShortLabel(lesson.subject))) {
-        return;
-      }
-      if (normalizeGroupLabel(lesson.group) !== groupLabel) {
-        return;
-      }
-
-      const dayLesson = getDayLessonData(entry, index);
-      if (dayLesson.canceled) {
-        return;
-      }
-
-      const topicIndex = findTopicIndex(list, dayLesson.topic);
-      if (topicIndex >= 0) {
-        used.add(topicIndex);
-      }
-    });
-
-    getExtraLessons(dateKey).forEach((lesson) => {
-      if (!topicListMatchesSubject(list, getSubjectShortLabel(lesson.subject))) {
-        return;
-      }
-      if (normalizeGroupLabel(lesson.group) !== groupLabel) {
-        return;
-      }
-      if (lesson.canceled) {
-        return;
-      }
-
-      const topicIndex = findTopicIndex(list, lesson.topic);
-      if (topicIndex >= 0) {
-        used.add(topicIndex);
-      }
-    });
-  });
-
-  return used;
 }
 
 function countFilledTopicsForGroup(list, groupLabel) {
