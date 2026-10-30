@@ -348,30 +348,114 @@ h1 {
   margin-top: 12px;
 }
 
+.topic-overview-hint {
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
 .topic-progress {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: 1fr;
   gap: 8px;
 }
 
-.topic-progress-pill {
-  padding: 12px 10px;
+.topic-overview-item {
   border-radius: 14px;
   border: 1px solid transparent;
-  text-align: center;
+  overflow: hidden;
 }
 
-.topic-progress-pill strong {
-  display: block;
-  font-size: 1.15rem;
+.topic-overview-item > summary {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 8px 10px;
+  align-items: center;
+  padding: 10px 12px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.topic-overview-item > summary::-webkit-details-marker {
+  display: none;
+}
+
+.topic-overview-item > summary strong {
+  font-size: 1.05rem;
   line-height: 1.1;
 }
 
-.topic-progress-pill span {
-  display: block;
-  margin-top: 4px;
+.topic-overview-item > summary span {
   font-size: 0.78rem;
   font-weight: 700;
+}
+
+.topic-overview-body {
+  padding: 0 12px 12px;
+  border-top: 1px solid rgba(92, 70, 46, 0.1);
+}
+
+.topic-overview-section {
+  margin-top: 10px;
+}
+
+.topic-overview-section h4 {
+  margin: 0 0 6px;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.topic-overview-section ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 6px;
+}
+
+.topic-overview-section li {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 8px;
+  align-items: start;
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+.topic-overview-section li:has(.topic-overview-text:only-child) {
+  grid-template-columns: 1fr;
+}
+
+.topic-overview-date {
+  margin: 0;
+  padding: 2px 7px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(47, 122, 79, 0.12);
+  color: var(--lesson-green);
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.topic-overview-date:hover {
+  background: rgba(47, 122, 79, 0.2);
+}
+
+.topic-overview-text {
+  overflow-wrap: anywhere;
+}
+
+.topic-overview-empty {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.75rem;
 }
 
 .topic-field-hint {

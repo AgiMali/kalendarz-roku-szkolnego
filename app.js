@@ -601,6 +601,7 @@ if (migrateStoredTopicNumbers(state)) {
 }
 let selectedMonthIndex = 0;
 let selectedDateKey = null;
+const expandedTopicGroups = new Set();
 let currentUser = null;
 let cloudUnsubscribe = null;
 let isApplyingRemoteState = false;
@@ -2136,6 +2137,131 @@ function getTopicProgressForGroup(list, groupLabel) {
   };
 }
 
+function formatShortTopicDate(date) {
+  return new Intl.DateTimeFormat("pl-PL", {
+    day: "numeric",
+    month: "short",
+  }).format(date);
+}
+
+function collectTopicRealizationEntries(list, groupLabel) {
+  const entries = [];
+  const usedIndexes = new Set();
+  const dateKeys = Object.keys(state.entries || {}).sort();
+
+  dateKeys.forEach((dateKey) => {
+    const entry = state.entries[dateKey];
+    const date = parseDateKey(dateKey);
+    if (Number.isNaN(date.getTime())) {
+      return;
+    }
+
+    const pushLesson = (lesson) => {
+      if (!lesson || lesson.canceled) {
+        return;
+      }
+      const topicText = String(lesson.topic || "").trim();
+      if (!topicText) {
+        return;
+      }
+
+      const catalogIndex = resolveCatalogTopicIndex(list, lesson, usedIndexes);
+      if (catalogIndex >= 0) {
+        usedIndexes.add(catalogIndex);
+        entries.push({
+          dateKey,
+          topic: list.topics[catalogIndex],
+          catalogIndex,
+          isCustom: false,
+        });
+        return;
+      }
+
+      entries.push({
+        dateKey,
+        topic: topicText,
+        catalogIndex: -1,
+        isCustom: true,
+      });
+    };
+
+    getScheduledLessonsForDate(date).forEach((lesson, index) => {
+      if (!topicListMatchesSubject(list, getSubjectShortLabel(lesson.subject))) {
+        return;
+      }
+      if (normalizeGroupLabel(lesson.group) !== groupLabel) {
+        return;
+      }
+      pushLesson(getDayLessonData(entry, index));
+    });
+
+    getExtraLessons(dateKey).forEach((lesson) => {
+      if (!topicListMatchesSubject(list, getSubjectShortLabel(lesson.subject))) {
+        return;
+      }
+      if (normalizeGroupLabel(lesson.group) !== groupLabel) {
+        return;
+      }
+      pushLesson(lesson);
+    });
+  });
+
+  return { entries, usedIndexes };
+}
+
+function getTopicOverviewForGroup(list, groupLabel) {
+  const progress = getTopicProgressForGroup(list, groupLabel);
+  const { entries, usedIndexes } = collectTopicRealizationEntries(list, groupLabel);
+  const done = entries.filter((item) => !item.isCustom);
+  const custom = entries.filter((item) => item.isCustom);
+  const remaining = list.topics
+    .map((topic, index) => ({ topic, index }))
+    .filter((item) => !usedIndexes.has(item.index));
+
+  return { progress, done, custom, remaining, usedIndexes };
+}
+
+function jumpToDateKey(dateKey) {
+  const date = parseDateKey(dateKey);
+  if (Number.isNaN(date.getTime())) {
+    return;
+  }
+
+  selectedMonthIndex = getMonthIndexForDate(date);
+  selectedDateKey = dateKey;
+  window.clearTimeout(calendarRefreshTimeoutId);
+  calendarRefreshTimeoutId = null;
+  render();
+  elements.detailCard?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function renderTopicOverviewSection(title, items, emptyText, { showRemaining = false } = {}) {
+  if (!items.length) {
+    return `<div class="topic-overview-section"><h4>${escapeHtml(title)}</h4><p class="topic-overview-empty">${escapeHtml(emptyText)}</p></div>`;
+  }
+
+  const rows = items
+    .map((item) => {
+      if (showRemaining) {
+        return `<li><span class="topic-overview-text">${escapeHtml(item.topic)}</span></li>`;
+      }
+
+      const date = parseDateKey(item.dateKey);
+      const dateLabel = Number.isNaN(date.getTime())
+        ? item.dateKey
+        : formatShortTopicDate(date);
+      return `<li>
+        <button class="topic-overview-date" type="button" data-date-key="${escapeHtml(item.dateKey)}" title="Otwórz dzień">
+          ${escapeHtml(dateLabel)}
+        </button>
+        <span class="topic-overview-text">${escapeHtml(item.topic)}</span>
+      </li>`;
+    })
+    .join("");
+
+  return `<div class="topic-overview-section"><h4>${escapeHtml(title)}</h4><ul>${rows}</ul></div>`;
+}
+
 function renderTopicProgress() {
   if (!elements.topicProgress) {
     return;
@@ -2145,24 +2271,58 @@ function renderTopicProgress() {
   TOPIC_LISTS.forEach((list) => {
     list.groups.forEach((group) => {
       const groupLabel = normalizeGroupLabel(group);
-      const progress = getTopicProgressForGroup(list, groupLabel);
+      const overview = getTopicOverviewForGroup(list, groupLabel);
+      const key = `${list.id}__${groupLabel}`;
       items.push({
+        key,
         label: `${groupLabel} • ${list.subject}`,
-        used: progress.used,
-        total: progress.total,
+        used: overview.progress.used,
+        total: overview.progress.total,
         subjectLabel: list.subject,
+        overview,
       });
     });
   });
 
   elements.topicProgress.innerHTML = items.length
     ? items
-        .map(
-          (item) =>
-            `<div class="topic-progress-pill ${getLessonBadgeClass(item.subjectLabel)}"><strong>${item.used}/${item.total}</strong><span>${escapeHtml(item.label)}</span></div>`,
-        )
+        .map((item) => {
+          const open = expandedTopicGroups.has(item.key) ? "open" : "";
+          return `<details class="topic-overview-item ${getLessonBadgeClass(item.subjectLabel)}" data-topic-key="${escapeHtml(item.key)}" ${open}>
+            <summary>
+              <strong>${item.used}/${item.total}</strong>
+              <span>${escapeHtml(item.label)}</span>
+            </summary>
+            <div class="topic-overview-body">
+              ${renderTopicOverviewSection("Zrealizowane", item.overview.done, "Brak tematów z listy.")}
+              ${renderTopicOverviewSection("Własne tematy", item.overview.custom, "Brak własnych tematów.")}
+              ${renderTopicOverviewSection("Pozostałe", item.overview.remaining, "Wszystkie tematy z listy są już wpisane.", { showRemaining: true })}
+            </div>
+          </details>`;
+        })
         .join("")
     : '<p class="subject-empty">Brak list tematów.</p>';
+
+  elements.topicProgress.querySelectorAll(".topic-overview-item").forEach((details) => {
+    details.addEventListener("toggle", () => {
+      const key = details.dataset.topicKey;
+      if (!key) {
+        return;
+      }
+      if (details.open) {
+        expandedTopicGroups.add(key);
+      } else {
+        expandedTopicGroups.delete(key);
+      }
+    });
+  });
+
+  elements.topicProgress.querySelectorAll("[data-date-key]").forEach((button) => {
+    button.addEventListener("click", (event) => {
+      event.preventDefault();
+      jumpToDateKey(button.dataset.dateKey);
+    });
+  });
 
   if (elements.topicProgressMeta) {
     if (!items.length) {
